@@ -1,0 +1,797 @@
+<title>Pracownia barw</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Layout: aplikacja na neutralnej szarości (jak podkład na figurce), kolor niosą wyłącznie farby.
+   Zakładki: koło + mieszalnik | przed zakupem | schematy | kolekcja | podstawy. */
+:root {
+  --ground: #d3d4d5;      /* jasny szary podkład */
+  --panel: #e2e3e4;
+  --well: #ecedee;        /* ceramiczna paleta */
+  --ink: #1c1d1e;
+  --muted: #55585b;
+  --line: #b0b2b4;
+  --brass: #7d5f22;       /* jedyny akcent UI: mosiądz */
+  --good: #2f6b3a;
+  --warn: #8a5a10;
+  --bad: #8e2b2b;
+  --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r: 6px;
+  --ease-out: cubic-bezier(.22, .8, .24, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #3b3c3d; --panel: #464748; --well: #525354; --ink: #ececea; --muted: #a8aaac;
+    --line: #5c5d5f; --brass: #d3ab5c; --good: #7fc48b; --warn: #e0b060; --bad: #ec8b8b; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #3b3c3d; --panel: #464748; --well: #525354; --ink: #ececea; --muted: #a8aaac;
+  --line: #5c5d5f; --brass: #d3ab5c; --good: #7fc48b; --warn: #e0b060; --bad: #ec8b8b; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--ground); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 20px; }
+h1, h2, h3 { font-family: var(--display); font-stretch: 78%; line-height: 1.1; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 3.1rem); font-weight: 800; letter-spacing: -0.01em; }
+h2 { font-size: 1.6rem; font-weight: 700; }
+h3 { font-size: 1.15rem; font-weight: 700; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: .875rem; }
+.num { font-variant-numeric: tabular-nums; }
+a { color: var(--ink); text-decoration-color: var(--brass); text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px 24px; }
+header.top p { max-width: 60ch; }
+.pots { display: flex; flex-wrap: wrap; gap: 3px; max-width: 360px; }
+.pots i { width: 14px; height: 14px; border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 1px rgb(0 0 0 / .18); }
+
+nav.tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--line); }
+nav.tabs a {
+  font-family: var(--display); font-stretch: 85%; font-weight: 600; font-size: 1.02rem; text-decoration: none;
+  padding: 8px 14px; border-radius: var(--r) var(--r) 0 0; color: var(--muted); margin-bottom: -1px; border: 1px solid transparent;
+}
+nav.tabs a[aria-current="page"] { color: var(--ink); background: var(--panel); border-color: var(--line); border-bottom-color: var(--panel); }
+
+section.view { display: grid; gap: 20px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.cols-wheel { display: grid; grid-template-columns: minmax(0, 520px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .cols, .cols-wheel { grid-template-columns: minmax(0, 1fr); } }
+.lesson { font-size: .94rem; max-width: 68ch; color: var(--muted); }
+.lesson b { font-weight: 700; color: var(--ink); }
+
+/* koło */
+.wheelbox { position: relative; width: 100%; max-width: 520px; aspect-ratio: 1; }
+.wheelbox canvas, .wheelbox svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.wheelbox svg { cursor: crosshair; touch-action: manipulation; }
+.wheelbox .dot { cursor: pointer; }
+.wheelbox .dot circle { stroke: var(--ground); stroke-width: .009; }
+.wheelbox .dot.dim { opacity: .38; }
+.wheelbox .dot.sel circle { stroke: var(--ink); stroke-width: .016; }
+.wheelbox .dot:focus-visible { outline: none; }
+.wheelbox .dot:focus-visible circle { stroke: var(--brass); stroke-width: .02; }
+.hue-label { font-family: var(--display); font-stretch: 80%; font-size: .052px; fill: var(--muted); text-anchor: middle; dominant-baseline: middle; }
+#marker { transition: transform 180ms var(--ease-out); pointer-events: none; }
+.slider-row { display: grid; gap: 6px; }
+.slider-row label { display: flex; justify-content: space-between; font-size: .9rem; }
+input[type=range] { width: 100%; accent-color: var(--brass); }
+.vstrip { height: 10px; border-radius: 5px; background: linear-gradient(90deg, #000, #fff); box-shadow: inset 0 0 0 1px var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .85rem; color: var(--muted); }
+
+.target { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 14px; align-items: center; }
+.target .big { width: 112px; height: 112px; border-radius: var(--r); background: var(--c); box-shadow: inset 0 0 0 1px rgb(0 0 0 / .2); }
+.target h3 { font-size: 1.45rem; }
+.picker { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.picker input[type=color] { width: 44px; height: 36px; border: 1px solid var(--line); border-radius: var(--r); background: var(--well); padding: 2px; }
+input[type=text], select {
+  font: inherit; color: var(--ink); background: var(--well); border: 1px solid var(--line); border-radius: var(--r); padding: 7px 10px; min-width: 0;
+}
+input[type=text] { width: 10ch; }
+.check { display: flex; gap: 8px; align-items: center; font-size: .9rem; }
+.check input { accent-color: var(--brass); width: 16px; height: 16px; }
+
+/* przepisy */
+.recipes { display: grid; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.recipe {
+  display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 12px; align-items: center; width: 100%;
+  text-align: left; font: inherit; color: inherit; background: var(--well); border: 1px solid var(--line); border-radius: var(--r); padding: 8px 10px; cursor: pointer;
+}
+.recipe[aria-pressed="true"] { border-color: var(--brass); box-shadow: inset 0 0 0 1px var(--brass); }
+.pair { width: 56px; height: 34px; border-radius: 4px; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .2); }
+.pair i { background: var(--c); }
+.parts { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.part { display: inline-flex; gap: 6px; align-items: center; white-space: nowrap; }
+.part b { font-variant-numeric: tabular-nums; }
+.dotc { width: 13px; height: 13px; border-radius: 50%; background: var(--c); flex: none; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .25); }
+.badge { font-size: .8rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; white-space: nowrap; border: 1px solid currentColor; }
+.q-great { color: var(--good); } .q-ok { color: var(--good); } .q-meh { color: var(--warn); } .q-far { color: var(--bad); }
+
+.mixwell { position: relative; height: 128px; border-radius: var(--r); background: var(--well); border: 1px solid var(--line); overflow: hidden; }
+.puddle {
+  position: absolute; left: 50%; top: 58%; width: 120px; height: 66px; margin: -33px 0 0 -60px; border-radius: 50%;
+  background: var(--c, var(--well)); box-shadow: inset 0 -4px 10px rgb(0 0 0 / .18);
+  transition: background-color 380ms var(--ease-out);
+}
+.drop { position: absolute; top: 14px; width: 22px; height: 22px; margin-left: -11px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--c);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / .2); transition: transform 460ms var(--ease-out), opacity 200ms linear; }
+.mixcap { position: absolute; left: 10px; bottom: 6px; font-size: .8rem; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) {
+  .puddle, .drop, #marker, .sw { transition: none !important; }
+}
+
+/* listy farb */
+.sw { width: 26px; height: 26px; border-radius: 50%; background: var(--c); flex: none; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .22); transition: background-color 320ms var(--ease-out); }
+.values-only .sw, .values-only .dotc, .values-only .pots i { background: var(--g); }
+.plist { display: grid; gap: 2px; list-style: none; margin: 0; padding: 0; }
+.prow { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--line); }
+.prow:last-child { border-bottom: 0; }
+.prow .nm { font-weight: 700; }
+.tag { font-size: .78rem; color: var(--muted); }
+
+/* zakupy */
+.search { position: relative; display: grid; gap: 6px; }
+.search input { width: 100%; }
+.hits { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.hits button { width: 100%; display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 10px; align-items: center; text-align: left; font: inherit; color: inherit;
+  background: var(--well); border: 1px solid transparent; border-radius: var(--r); padding: 6px 10px; cursor: pointer; }
+.hits button:hover { border-color: var(--line); }
+.verdict { display: grid; gap: 6px; padding: 14px 16px; border-radius: var(--r); border: 1px solid currentColor; }
+.verdict strong { font-family: var(--display); font-stretch: 80%; font-size: 1.5rem; line-height: 1.1; }
+.verdict p { color: var(--ink); }
+
+/* schematy */
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { font: inherit; font-size: .92rem; color: var(--ink); background: var(--well); border: 1px solid var(--line); border-radius: 99px; padding: 5px 13px; cursor: pointer; }
+.seg button[aria-pressed="true"] { border-color: var(--brass); background: var(--panel); box-shadow: inset 0 0 0 1px var(--brass); font-weight: 700; }
+.slots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 620px) { .slots { grid-template-columns: minmax(0, 1fr); } }
+.slot { display: grid; gap: 8px; align-content: start; }
+.slot .pair { width: 100%; height: 54px; }
+.ratio { display: flex; height: 40px; border-radius: var(--r); overflow: hidden; box-shadow: inset 0 0 0 1px var(--line); }
+.ratio i { background: var(--c); }
+.spheres { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.sphere { display: grid; gap: 8px; justify-items: center; text-align: center; }
+.sphere canvas { width: 100%; max-width: 190px; aspect-ratio: 1; }
+.ladder { display: flex; width: 100%; max-width: 260px; height: 26px; border-radius: 4px; overflow: hidden; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .2); }
+.ladder i { flex: 1; background: var(--c); }
+.shield { width: 100%; max-width: 200px; justify-self: center; }
+
+/* kolekcja */
+.vscale { width: 100%; height: auto; display: block; }
+.vscale text { font-size: 11px; fill: var(--muted); font-family: var(--body); }
+.cover { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.sector { background: var(--well); border-radius: var(--r); padding: 10px 12px; display: grid; gap: 6px; align-content: start; }
+.sector .row { display: flex; flex-wrap: wrap; gap: 4px; }
+.sector.empty { outline: 1px dashed var(--warn); outline-offset: -1px; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; display: grid; gap: 8px; align-content: start; }
+.card p { font-size: .95rem; }
+footer { font-size: .85rem; color: var(--muted); max-width: 75ch; }
+</style>
+
+<div class="wrap" id="app">
+  <header class="top">
+    <div style="display:grid;gap:6px">
+      <h1>Pracownia barw</h1>
+      <p class="muted" id="sub"></p>
+    </div>
+    <div class="pots" id="pots" aria-hidden="true"></div>
+  </header>
+
+  <nav class="tabs" aria-label="Widoki">
+    <a href="#kolo">Koło i mieszanie</a>
+    <a href="#zakupy">Przed zakupem</a>
+    <a href="#schematy">Schematy</a>
+    <a href="#kolekcja">Kolekcja</a>
+    <a href="#podstawy">Podstawy</a>
+  </nav>
+
+  <!-- KOŁO -->
+  <section class="view" id="v-kolo">
+    <div class="cols-wheel">
+      <div class="panel">
+        <div class="wheelbox">
+          <canvas id="wheel" aria-hidden="true"></canvas>
+          <svg id="wheelsvg" viewBox="-1.2 -1.2 2.4 2.4" role="img" aria-label="Koło barw z Twoimi farbami. Kliknij, żeby wybrać kolor docelowy."></svg>
+        </div>
+        <div class="slider-row">
+          <label for="lslider"><span>Wartość (jasność) przekroju</span><span class="num" id="lval"></span></label>
+          <input type="range" id="lslider" min="5" max="97" value="55">
+          <div class="vstrip" aria-hidden="true"></div>
+        </div>
+        <div class="legend">
+          <span>Kropka to Twoja farba. Odcień to kąt, nasycenie to odległość od środka.</span>
+          <span>Blade kropki mają inną wartość niż ten przekrój.</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="target">
+          <div class="big" id="tswatch"></div>
+          <div style="display:grid;gap:6px;min-width:0">
+            <h3 id="tname">Kolor docelowy</h3>
+            <p class="small muted num" id="tmeta"></p>
+            <div class="picker">
+              <input type="color" id="tcolor" aria-label="Wybierz kolor">
+              <input type="text" id="thex" aria-label="Kod hex" spellcheck="false">
+            </div>
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" id="incTransparent"> Mieszaj też washe i contrasty</label>
+        <div style="display:grid;gap:8px">
+          <h3>Jak to zmieszać z Twoich farb</h3>
+          <ul class="recipes" id="recipes"></ul>
+          <p class="small muted" id="recipeNote"></p>
+        </div>
+        <div class="mixwell" id="mixwell" aria-hidden="true"><div class="puddle" id="puddle"></div><div class="mixcap" id="mixcap">Kliknij przepis, żeby zobaczyć proporcje</div></div>
+        <div style="display:grid;gap:6px">
+          <h3>Najbliższe farby w sklepie</h3>
+          <ul class="plist" id="shopNear"></ul>
+        </div>
+      </div>
+    </div>
+    <p class="lesson"><b>Mieszanie zawsze trochę gasi kolor.</b> Mieszanka nie będzie bardziej nasycona niż farby, z których powstała. Jeśli cel leży dalej od środka koła niż Twoje kropki w tym kierunku, przepis go nie dogoni. Wtedy pomoże tylko nowa farba.</p>
+  </section>
+
+  <!-- ZAKUPY -->
+  <section class="view" id="v-zakupy" hidden>
+    <div class="cols">
+      <div class="panel">
+        <h2>Czy ta farba mi się przyda?</h2>
+        <p class="muted small">Wpisz nazwę farby z dowolnej z czterech marek albo kod hex. Sprawdzę, czy masz coś podobnego i czy zmieszasz ten kolor sam.</p>
+        <div class="search">
+          <input type="text" id="q" placeholder="np. Rhinox Hide albo #4a3020" aria-label="Szukaj farby" autocomplete="off" spellcheck="false">
+          <ul class="hits" id="hits"></ul>
+        </div>
+      </div>
+      <div class="panel" id="buyResult"></div>
+    </div>
+  </section>
+
+  <!-- SCHEMATY -->
+  <section class="view" id="v-schematy" hidden>
+    <div class="panel">
+      <h2>Zestaw kolorów do modelu</h2>
+      <div class="picker">
+        <label for="baseSel" class="small">Kolor główny</label>
+        <select id="baseSel"></select>
+      </div>
+      <div class="seg" id="harm" role="group" aria-label="Harmonia"></div>
+      <p class="lesson" id="harmText"></p>
+    </div>
+    <div class="cols">
+      <div class="panel">
+        <h3>Proporcje 60 / 30 / 10</h3>
+        <div class="slots" id="slots"></div>
+        <div class="ratio" id="ratio" aria-hidden="true"></div>
+        <svg class="shield" id="shield" viewBox="0 0 200 230" role="img" aria-label="Podgląd tarczy w kolorach zestawu"></svg>
+        <p class="lesson"><b>60 / 30 / 10:</b> jeden kolor rządzi (pancerz, płaszcz), drugi go wspiera (skóra, pasy), trzeci to akcent (soczewki, klejnoty, znaki). Akcent działa, bo go mało.</p>
+      </div>
+      <div class="panel">
+        <h3>Cienie i światła koloru głównego</h3>
+        <div class="spheres">
+          <div class="sphere"><canvas id="sph1" width="190" height="190" aria-label="Kula cieniowana czernią i bielą"></canvas><div class="ladder" id="lad1"></div><p class="small"><b>Czerń i biel.</b> <span class="muted" id="lad1t"></span></p></div>
+          <div class="sphere"><canvas id="sph2" width="190" height="190" aria-label="Kula z zimnym cieniem i ciepłym światłem"></canvas><div class="ladder" id="lad2"></div><p class="small"><b>Zimny cień, ciepłe światło.</b> <span class="muted" id="lad2t"></span></p></div>
+        </div>
+        <p class="lesson"><b>Porównaj kule.</b> Czerń i biel tylko przyciemniają i rozbielają, więc kolor szarzeje. Cień przełamany chłodną barwą i światło ocieplone kością dają więcej życia. Tak malują ludzie, którzy wygrywają konkursy.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- KOLEKCJA -->
+  <section class="view" id="v-kolekcja" hidden>
+    <div class="panel">
+      <div style="display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between;align-items:center">
+        <h2>Skala wartości</h2>
+        <label class="check"><input type="checkbox" id="valuesOnly"> Pokaż same wartości (bez koloru)</label>
+      </div>
+      <svg class="vscale" id="vscale" viewBox="0 0 1000 150" role="img" aria-label="Farby rozłożone od najciemniejszej do najjaśniejszej"></svg>
+      <p class="lesson" id="valueLesson"></p>
+    </div>
+    <div class="panel">
+      <h2>Pokrycie koła barw</h2>
+      <p class="small muted">Farby kryjące według odcienia. Szare, czerń, biel, metaliki i washe są niżej na liście.</p>
+      <div class="cover" id="cover"></div>
+    </div>
+    <div class="panel">
+      <h2>Wszystkie farby</h2>
+      <div class="cols" id="groups"></div>
+    </div>
+  </section>
+
+  <!-- PODSTAWY -->
+  <section class="view" id="v-podstawy" hidden>
+    <div class="cards">
+      <article class="card"><h3>Trzy cechy koloru</h3><p><b>Odcień</b> to rodzaj barwy (czerwień, zieleń). <b>Wartość</b> to jasność. <b>Nasycenie</b> to intensywność: im bliżej środka koła, tym kolor bardziej szary. Na kole widzisz odcień i nasycenie, a suwak pod nim zmienia wartość.</p><p><a href="#kolo">Pobaw się kołem</a></p></article>
+      <article class="card"><h3>Wartość robi robotę</h3><p>Figurka czyta się z daleka dzięki kontrastowi jasne–ciemne, a nie dzięki kolorom. Mephiston Red i Macragge Blue mają bardzo podobną wartość: obok siebie zleją się w jedną plamę. Zmruż oczy albo włącz widok bez koloru.</p><p><a href="#kolekcja">Zobacz swoją skalę wartości</a></p></article>
+      <article class="card"><h3>Farby mieszają się inaczej niż światło</h3><p>Pigment pochłania światło, więc mieszanka jest zwykle ciemniejsza i bardziej zgaszona, niż podpowiada intuicja. Niebieski z żółtym daje przygaszoną, ciemną zieleń, a nie soczystą. Mieszalnik tutaj liczy to modelem pigmentowym (Kubelka–Munk), a nie średnią z RGB.</p></article>
+      <article class="card"><h3>Dopełnienie gasi, czerń brudzi</h3><p>Kolor z przeciwnej strony koła obniża nasycenie bez martwej szarości. Odrobina zieleni zgasi zbyt krzykliwą czerwień, odrobina fioletu przytłumi żółć. Czerń przyciemnia, ale przy okazji szarzy kolor.</p><p><a href="#schematy">Porównaj na kulach</a></p></article>
+      <article class="card"><h3>Ciepłe światło, zimny cień</h3><p>Pod ciepłym światłem cienie wydają się chłodne. Rozjaśniaj kością albo jasnym beżem zamiast czystej bieli, a cienie przełamuj niebieskim lub fioletem. Biel zostaw na ostatnie punkty blasku.</p></article>
+      <article class="card"><h3>60 / 30 / 10</h3><p>Jeden kolor dominuje, drugi wspiera, trzeci akcentuje. Akcent najlepiej działa, gdy jest dopełnieniem koloru głównego: czerwone soczewki na zielonym pancerzu, złoto na fiolecie.</p></article>
+      <article class="card"><h3>Dlaczego tło jest szare</h3><p>Kolor oceniasz zawsze względem otoczenia. Na czerni wszystko wygląda jaśniej, na bieli ciemniej. Neutralna szarość, jak podkład na figurce, najmniej przekłamuje.</p></article>
+      <article class="card"><h3>Przepis to punkt startu</h3><p>Kody kolorów z katalogu są przybliżone, a model mieszania upraszcza rzeczywistość. Zmieszaj kilka kropli na mokrej palecie, połóż na odpadowej figurce i popraw proporcje okiem.</p></article>
+    </div>
+  </section>
+
+  <footer id="foot"></footer>
+</div>
+
+<script src="data.js"></script>
+<script>
+(() => {
+'use strict';
+const D = window.PALETA;
+if (!D) {
+  document.getElementById('app').innerHTML = '<div class="panel"><h2>Brak danych</h2><p>Nie znaleziono pliku <b>data.js</b>. Uruchom <code>node build.mjs</code> w folderze projektu i otwórz <b>index.html</b> ponownie.</p></div>';
+  return;
+}
+
+/* ---------- kolor ---------- */
+const toLin = c => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+const toByte = x => { x = Math.min(1, Math.max(0, x)); return Math.round(255 * (x <= 0.0031308 ? 12.92 * x : 1.055 * x ** (1 / 2.4) - 0.055)); };
+function lin2lab([r, g, b]) {
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return [0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+          1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+          0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s];
+}
+function lab2lin([L, a, b]) {
+  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+  const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+  const s = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3;
+  return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+          -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+          -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s];
+}
+const inGamut = c => c.every(v => v >= -1e-4 && v <= 1 + 1e-4);
+const lch2lab = (L, C, H) => [L, C * Math.cos(H * Math.PI / 180), C * Math.sin(H * Math.PI / 180)];
+const lab2lch = ([L, a, b]) => [L, Math.hypot(a, b), (Math.atan2(b, a) * 180 / Math.PI + 360) % 360];
+const linHex = c => '#' + c.map(v => toByte(v).toString(16).padStart(2, '0')).join('');
+const hexLin = h => { const n = parseInt(h.replace('#', ''), 16); return [n >> 16, (n >> 8) & 255, n & 255].map(toLin); };
+const greyOf = lab => linHex(lab2lin([lab[0], 0, 0]));
+const dE = (p, q) => 100 * Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
+function clampToGamut(L, C, H) {
+  if (inGamut(lab2lin(lch2lab(L, C, H)))) return C;
+  let lo = 0, hi = C;
+  for (let i = 0; i < 22; i++) { const mid = (lo + hi) / 2; inGamut(lab2lin(lch2lab(L, mid, H))) ? lo = mid : hi = mid; }
+  return lo;
+}
+// Kubelka–Munk (jedna stała) per kanał liniowego RGB: przybliżenie mieszania pigmentów.
+const ksOf = lin => lin.map(R => { R = Math.min(1, Math.max(0.002, R)); return (1 - R) ** 2 / (2 * R); });
+function mixKs(items) { // items: [[ks, waga]]
+  let tot = 0; const k = [0, 0, 0];
+  for (const [ks, w] of items) { tot += w; for (let i = 0; i < 3; i++) k[i] += ks[i] * w; }
+  return k.map(v => { v /= tot; return 1 + v - Math.sqrt(v * v + 2 * v); });
+}
+
+/* ---------- język ---------- */
+const pl = (n, a, b, c) => n === 1 ? a : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? b : c;
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+const VAL = { m: ['bardzo ciemny', 'ciemny', 'średni', 'jasny', 'bardzo jasny'], f: ['bardzo ciemna', 'ciemna', 'średnia', 'jasna', 'bardzo jasna'] };
+const valBucket = L => L < 0.32 ? 0 : L < 0.47 ? 1 : L < 0.66 ? 2 : L < 0.82 ? 3 : 4;
+const SECTORS = [
+  { key: 'czerwien', name: 'czerwień', g: 'f', from: 15, to: 45, mid: 30 },
+  { key: 'pomarancz', name: 'pomarańcz', g: 'm', from: 45, to: 72, mid: 58 },
+  { key: 'zolc', name: 'żółć', g: 'f', from: 72, to: 112, mid: 95 },
+  { key: 'zielen', name: 'zieleń', g: 'f', from: 112, to: 165, mid: 138 },
+  { key: 'turkus', name: 'turkus', g: 'm', from: 165, to: 215, mid: 190 },
+  { key: 'niebieski', name: 'niebieski', g: 'm', from: 215, to: 272, mid: 250 },
+  { key: 'fiolet', name: 'fiolet', g: 'm', from: 272, to: 322, mid: 300 },
+  { key: 'roz', name: 'róż i purpura', g: 'm', from: 322, to: 375, mid: 350 },
+];
+const sectorOf = H => SECTORS.find(s => (H >= s.from && H < s.to) || (H + 360 >= s.from && H + 360 < s.to));
+function describe(lab) {
+  const [L, C, H] = lab2lch(lab);
+  const vb = valBucket(L);
+  if (C < 0.03) {
+    if (L < 0.27) return { key: 'czern', text: 'czerń', neutral: true };
+    if (L > 0.9) return { key: 'biel', text: 'biel', neutral: true };
+    return { key: 'szary' + vb, text: VAL.f[vb] + ' szarość', neutral: true };
+  }
+  if (H >= 22 && H < 95 && C < 0.14 && L < 0.6) return { key: 'braz' + vb, text: VAL.m[vb] + ' brąz', sector: 'braz' };
+  if (H >= 55 && H < 112 && C < 0.09 && L >= 0.6) return { key: 'kosc' + vb, text: (vb >= 4 ? 'jasna ' : '') + 'kość / beż', sector: 'kosc' };
+  const s = sectorOf(H);
+  let name = s.name, g = s.g;
+  if (s.key === 'roz' && L < 0.5) { name = 'śliwka'; g = 'f'; }
+  const muted = C < 0.07 ? (g === 'f' ? ' przygaszona' : ' przygaszony') : '';
+  return { key: s.key + vb, text: VAL[g][vb] + muted + ' ' + name, sector: s.key };
+}
+const ROLE_PL = { base: 'base', layer: 'layer', shade: 'wash', contrast: 'contrast', speedpaint: 'speedpaint', metallic: 'metalik', technical: 'technical / tekstura', air: 'air', dry: 'dry', ink: 'ink' };
+const TRANSPARENT = new Set(['shade', 'contrast', 'speedpaint', 'ink']);
+
+/* ---------- dane ---------- */
+const ownedSet = new Set(D.owned);
+function mkPaint([id, name, brand, role, r, g, b], owned) {
+  const lin = [r, g, b].map(toLin), lab = lin2lab(lin);
+  const p = { id, name, brand: D.brands[brand] || brand, role, hex: linHex(lin), lin, lab, ks: ksOf(lin), owned };
+  p.lch = lab2lch(lab); p.grey = greyOf(lab); p.desc = describe(lab);
+  return p;
+}
+const catalog = D.catalog.map(r => mkPaint(r, ownedSet.has(r[0])));
+const extras = D.extras.map(r => mkPaint(r, true));
+const mine = catalog.filter(p => p.owned).concat(extras).sort((a, b) => a.lab[0] - b.lab[0]);
+const shop = catalog.filter(p => !p.owned);
+const opaque = p => !TRANSPARENT.has(p.role) && p.role !== 'metallic' && p.role !== 'technical';
+const mixPool = inc => mine.filter(p => opaque(p) || (inc && TRANSPARENT.has(p.role)));
+
+/* ---------- przepisy ---------- */
+const PAIRS = [[1,1],[2,1],[3,1],[4,1],[1,2],[1,3],[1,4],[3,2],[2,3],[4,3],[3,4]];
+const TRIPLES = [];
+for (let a = 1; a <= 3; a++) for (let b = 1; b <= 3; b++) for (let c = 1; c <= 3; c++) {
+  const g = (x, y) => y ? g(y, x % y) : x;
+  if (g(g(a, b), c) === 1) TRIPLES.push([a, b, c]);
+}
+function recipes(target, pool, n = 5) {
+  const out = [];
+  const push = parts => {
+    const lin = parts.length === 1 ? parts[0][0].lin : mixKs(parts.map(([p, w]) => [p.ks, w]));
+    const lab = lin2lab(lin), d = dE(lab, target);
+    out.push({ parts, lin, lab, d, score: d + 0.7 * (parts.length - 1) + 0.04 * parts.reduce((s, x) => s + x[1], 0) });
+  };
+  for (const p of pool) push([[p, 1]]);
+  for (let i = 0; i < pool.length; i++) for (let j = i + 1; j < pool.length; j++)
+    for (const [a, b] of PAIRS) push([[pool[i], a], [pool[j], b]]);
+  // trójki tylko z farb sensownie bliskich celu, żeby nie mnożyć bezsensownych kombinacji
+  const near = pool.slice().sort((x, y) => dE(x.lab, target) - dE(y.lab, target)).slice(0, 12);
+  for (let i = 0; i < near.length; i++) for (let j = i + 1; j < near.length; j++) for (let k = j + 1; k < near.length; k++)
+    for (const [a, b, c] of TRIPLES) push([[near[i], a], [near[j], b], [near[k], c]]);
+  out.sort((x, y) => x.score - y.score);
+  const seen = new Set(), res = [];
+  for (const r of out) {
+    const key = r.parts.map(x => x[0].id).sort().join('+');
+    if (seen.has(key)) continue;
+    seen.add(key); res.push(r);
+    if (res.length >= n) break;
+  }
+  return res;
+}
+function quality(d) {
+  if (d < 2.5) return ['prawie identyczny', 'q-great'];
+  if (d < 5) return ['bardzo blisko', 'q-ok'];
+  if (d < 9) return ['ten sam kierunek', 'q-meh'];
+  return ['daleko', 'q-far'];
+}
+const partsHtml = parts => parts.map(([p, w]) =>
+  `<span class="part"><span class="dotc" style="--c:${p.hex};--g:${p.grey}"></span>${parts.length > 1 ? `<b>${w}</b>&nbsp;${pl(w, 'część', 'części', 'części')}` : ''} ${esc(p.name)}</span>`).join('');
+const nearest = (lab, list, n) => list.map(p => [p, dE(p.lab, lab)]).sort((a, b) => a[1] - b[1]).slice(0, n);
+const prow = (p, right = '') => `<li class="prow"><span class="sw" style="--c:${p.hex};--g:${p.grey}"></span><span style="min-width:0"><span class="nm">${esc(p.name)}</span> <span class="tag">${esc(p.brand)}, ${ROLE_PL[p.role] || p.role}, ${p.desc.text}</span></span><span class="tag num">${right}</span></li>`;
+
+/* ---------- nagłówek ---------- */
+const $ = id => document.getElementById(id);
+$('sub').textContent = `${mine.length} ${pl(mine.length, 'farba', 'farby', 'farb')} w kolekcji, ${catalog.length} w katalogu czterech marek. Dane z ${D.generated.split('-').reverse().join('.')}.`;
+$('pots').innerHTML = mine.map(p => `<i style="--c:${p.hex};--g:${p.grey}" title="${esc(p.name)}"></i>`).join('');
+$('foot').textContent = 'Kolory farb pochodzą z katalogu minipainter i są przybliżone. Mieszalnik używa modelu pigmentowego, który dobrze oddaje kierunek mieszanki, ale nie zastąpi próby na palecie. Tło jest celowo neutralnie szare.';
+
+/* ---------- KOŁO ---------- */
+const CMAX = 0.3;
+const canvas = $('wheel'), svg = $('wheelsvg'), slider = $('lslider');
+let L = 0.55, target = null, selRecipe = null;
+const RES = 380;
+canvas.width = RES; canvas.height = RES;
+const ctx = canvas.getContext('2d');
+const R0 = RES / 2 / 1.2; // promień koła w pikselach (viewBox -1.2..1.2)
+function drawWheel() {
+  const img = ctx.createImageData(RES, RES), d = img.data;
+  for (let y = 0; y < RES; y++) for (let x = 0; x < RES; x++) {
+    const dx = (x - RES / 2) / R0, dy = (RES / 2 - y) / R0, r = Math.hypot(dx, dy);
+    if (r > 1) continue;
+    const lin = lab2lin(lch2lab(L, r * CMAX, Math.atan2(dy, dx) * 180 / Math.PI));
+    if (!inGamut(lin)) continue;
+    const i = (y * RES + x) * 4;
+    d[i] = toByte(lin[0]); d[i + 1] = toByte(lin[1]); d[i + 2] = toByte(lin[2]); d[i + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+const pos = (C, H) => [Math.min(C / CMAX, 1.04) * Math.cos(H * Math.PI / 180), -Math.min(C / CMAX, 1.04) * Math.sin(H * Math.PI / 180)];
+function buildSvg() {
+  const NS = 'http://www.w3.org/2000/svg';
+  let h = `<circle cx="0" cy="0" r="1" fill="none" stroke="var(--line)" stroke-width=".006"/>`;
+  for (const s of SECTORS) { const [x, y] = pos(CMAX * 1.11, s.mid); h += `<text class="hue-label" x="${x.toFixed(3)}" y="${y.toFixed(3)}">${s.name.split(' ')[0]}</text>`; }
+  h += `<g id="dots"></g><g id="marker"><circle r=".05" fill="none" stroke="#fff" stroke-width=".018"/><circle r=".05" fill="none" stroke="#000" stroke-width=".008"/></g>`;
+  svg.innerHTML = h;
+  const g = svg.querySelector('#dots');
+  for (const p of mine) {
+    if (p.role === 'metallic' || p.role === 'technical') continue;
+    const [x, y] = pos(p.lch[1], p.lch[2]);
+    const el = document.createElementNS(NS, 'g');
+    el.setAttribute('class', 'dot'); el.setAttribute('tabindex', '0'); el.setAttribute('role', 'button');
+    el.setAttribute('aria-label', `${p.name}, ${p.desc.text}`); el.dataset.id = p.id;
+    el.innerHTML = `<title>${esc(p.name)} (${p.desc.text})</title><circle cx="${x.toFixed(3)}" cy="${y.toFixed(3)}" r=".055" fill="${p.hex}"/>`;
+    g.appendChild(el);
+  }
+}
+function updateDots() {
+  svg.querySelectorAll('.dot').forEach(el => {
+    const p = mine.find(q => q.id === el.dataset.id);
+    el.classList.toggle('dim', Math.abs(p.lab[0] - L) > 0.14);
+    el.classList.toggle('sel', target && target.paint === p);
+  });
+}
+function setTarget(lab, paint = null, source = 'wheel') {
+  target = { lab, paint, lin: lab2lin(lab) };
+  target.hex = linHex(target.lin);
+  const [tl, tc, th] = lab2lch(lab);
+  const [x, y] = pos(tc, th);
+  $('marker').style.transform = `translate(${x}px, ${y}px)`;
+  $('tswatch').style.setProperty('--c', target.hex);
+  $('tname').textContent = paint ? paint.name : target.hex.toUpperCase();
+  $('tmeta').textContent = `${describe(lab).text}. Wartość ${Math.round(tl * 100)}/100, nasycenie ${Math.round(tc / CMAX * 100)}%, odcień ${Math.round(th)}°`;
+  $('tcolor').value = target.hex; $('thex').value = target.hex.toUpperCase();
+  if (source !== 'slider') { L = tl; slider.value = Math.round(tl * 100); $('lval').textContent = Math.round(tl * 100); scheduleWheel(); }
+  updateDots(); renderRecipes(); renderShopNear();
+}
+let wheelRaf = 0;
+const scheduleWheel = () => { cancelAnimationFrame(wheelRaf); wheelRaf = requestAnimationFrame(drawWheel); };
+slider.addEventListener('input', () => {
+  L = slider.value / 100; $('lval').textContent = slider.value; scheduleWheel();
+  if (target) { const [, c, h] = lab2lch(target.lab); setTarget(lch2lab(L, clampToGamut(L, c, h), h), null, 'slider'); }
+});
+svg.addEventListener('click', e => {
+  const dot = e.target.closest('.dot');
+  if (dot) { const p = mine.find(q => q.id === dot.dataset.id); setTarget(p.lab, p); return; }
+  const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+  const q = pt.matrixTransform(svg.getScreenCTM().inverse());
+  const r = Math.hypot(q.x, q.y); if (r > 1.02) return;
+  const H = (Math.atan2(-q.y, q.x) * 180 / Math.PI + 360) % 360;
+  const C = clampToGamut(L, Math.min(r, 1) * CMAX, H);
+  setTarget(lch2lab(L, C, H), null, 'slider');
+});
+svg.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.dot')) { e.preventDefault(); e.target.closest('.dot').dispatchEvent(new MouseEvent('click', { bubbles: true })); }
+});
+const fromHex = v => { if (/^#?[0-9a-f]{6}$/i.test(v.trim())) setTarget(lin2lab(hexLin(v.trim().replace(/^#?/, '#')))); };
+$('tcolor').addEventListener('input', e => fromHex(e.target.value));
+$('thex').addEventListener('change', e => fromHex(e.target.value));
+$('incTransparent').addEventListener('change', () => renderRecipes());
+
+let currentRecipes = [];
+function renderRecipes() {
+  const pool = mixPool($('incTransparent').checked);
+  currentRecipes = recipes(target.lab, pool, 5);
+  $('recipes').innerHTML = currentRecipes.map((r, i) => {
+    const [q, cls] = quality(r.d);
+    return `<li><button class="recipe" data-i="${i}" aria-pressed="false"><span class="pair"><i style="--c:${target.hex}"></i><i style="--c:${linHex(r.lin)}"></i></span><span class="parts">${partsHtml(r.parts)}</span><span class="badge ${cls}" title="Różnica ΔE ${r.d.toFixed(1)}">${q}</span></button></li>`;
+  }).join('');
+  const best = currentRecipes[0];
+  const maxC = Math.max(...pool.filter(p => Math.abs(p.lab[0] - target.lab[0]) < 0.2).map(p => p.lch[1]), 0);
+  let note = 'Lewa połówka próbki to cel, prawa to mieszanka.';
+  if (best.d >= 9 && lab2lch(target.lab)[1] > maxC * 1.05) note += ' Ten kolor jest bardziej nasycony niż Twoje farby o podobnej wartości. Mieszaniem go nie osiągniesz, potrzebna jest nowa farba.';
+  else if (best.d >= 9) note += ' Twoja kolekcja nie ma farb w tym rejonie koła. Sprawdź podpowiedzi ze sklepu niżej.';
+  $('recipeNote').textContent = note;
+  selRecipe = null; resetWell();
+}
+$('recipes').addEventListener('click', e => {
+  const b = e.target.closest('.recipe'); if (!b) return;
+  $('recipes').querySelectorAll('.recipe').forEach(x => x.setAttribute('aria-pressed', x === b));
+  playMix(currentRecipes[+b.dataset.i]);
+});
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+function resetWell() {
+  const w = $('mixwell'); w.querySelectorAll('.drop').forEach(d => d.remove());
+  $('puddle').style.setProperty('--c', 'var(--well)');
+  $('mixcap').textContent = 'Kliknij przepis, żeby zobaczyć proporcje';
+}
+function playMix(r) {
+  const w = $('mixwell'), puddle = $('puddle');
+  w.querySelectorAll('.drop').forEach(d => d.remove());
+  const drops = r.parts.flatMap(([p, n]) => Array(n).fill(p));
+  const W = w.clientWidth, step = Math.min(34, (W - 40) / drops.length);
+  const x0 = W / 2 - step * (drops.length - 1) / 2;
+  const mixed = linHex(r.lin);
+  $('mixcap').textContent = r.parts.length === 1 ? `${r.parts[0][0].name} prosto z butelki` : `${drops.length} ${pl(drops.length, 'kropla', 'krople', 'kropli')}: ` + r.parts.map(([p, n]) => `${n} × ${p.name}`).join(' + ');
+  if (reduceMotion.matches) { puddle.style.setProperty('--c', mixed); return; }
+  puddle.style.setProperty('--c', drops[0].hex);
+  const els = drops.map((p, i) => {
+    const d = document.createElement('span'); d.className = 'drop';
+    d.style.left = (x0 + i * step) + 'px'; d.style.setProperty('--c', p.hex);
+    d.style.transitionDelay = (i * 70) + 'ms';
+    w.appendChild(d); return d;
+  });
+  w.offsetWidth; // zatwierdź pozycję startową
+  els.forEach((d, i) => { const dx = W / 2 - (x0 + i * step); d.style.transform = `translate(${dx}px, 52px) rotate(-45deg) scale(.55)`; d.style.opacity = '0'; d.style.transitionDelay = (i * 70) + 'ms, ' + (i * 70 + 300) + 'ms'; });
+  setTimeout(() => puddle.style.setProperty('--c', mixed), drops.length * 70 + 280);
+}
+function renderShopNear() {
+  $('shopNear').innerHTML = nearest(target.lab, shop.filter(opaque), 4).map(([p, d]) => prow(p, 'ΔE ' + d.toFixed(1))).join('');
+}
+
+/* ---------- ZAKUPY ---------- */
+const allSearch = catalog.concat(extras);
+const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+$('q').addEventListener('input', e => {
+  const v = e.target.value.trim();
+  if (/^#?[0-9a-f]{6}$/i.test(v)) { $('hits').innerHTML = ''; const lin = hexLin(v); judge({ id: 'hex', name: '#' + v.replace('#', '').toUpperCase(), brand: 'własny kolor', role: 'base', lin, lab: lin2lab(lin), hex: linHex(lin), owned: false, lch: lab2lch(lin2lab(lin)), grey: greyOf(lin2lab(lin)), desc: describe(lin2lab(lin)) }); return; }
+  if (v.length < 2) { $('hits').innerHTML = ''; return; }
+  const n = norm(v);
+  const hits = allSearch.filter(p => norm(p.name).includes(n)).sort((a, b) => norm(a.name).indexOf(n) - norm(b.name).indexOf(n)).slice(0, 8);
+  $('hits').innerHTML = hits.length ? hits.map(p => `<li><button data-id="${esc(p.id)}"><span class="sw" style="--c:${p.hex};--g:${p.grey};width:18px;height:18px"></span><span>${esc(p.name)} <span class="tag">${esc(p.brand)}, ${ROLE_PL[p.role] || p.role}</span></span><span class="tag">${p.owned ? 'masz' : ''}</span></button></li>`).join('') : '<li class="small muted">Nie ma takiej farby w katalogu. Spróbuj krótszego fragmentu nazwy albo wpisz kod hex.</li>';
+});
+$('hits').addEventListener('click', e => { const b = e.target.closest('button'); if (b) judge(allSearch.find(p => p.id === b.dataset.id)); });
+function judge(c) {
+  const box = $('buyResult');
+  const metal = c.role === 'metallic', tech = c.role === 'technical', transp = TRANSPARENT.has(c.role);
+  let compare = mine.filter(p => metal ? p.role === 'metallic' : tech ? p.role === 'technical' : p.role !== 'metallic' && p.role !== 'technical');
+  if (c.owned) compare = compare.filter(p => p.id !== c.id);
+  const near = nearest(c.lab, compare, 3);
+  const mix = metal || tech ? null : recipes(c.lab, mixPool(false), 1)[0];
+  const same = mine.filter(p => p.id !== c.id && p.desc.key === c.desc.key && opaque(p) === opaque(c));
+  let v, cls, why;
+  if (c.owned) { v = 'Już ją masz'; cls = 'q-ok'; why = 'Ta farba jest w Twojej kolekcji.'; }
+  else if (near[0] && near[0][1] < 5) { v = 'Raczej nie kupuj'; cls = 'q-far'; why = `Masz prawie ten sam kolor: ${near[0][0].name} (różnica ${near[0][1].toFixed(1)}).`; }
+  else if (mix && mix.d < 5 && !transp) { v = 'Zmieszasz ją sam'; cls = 'q-meh'; why = 'Z Twoich farb wychodzi bardzo bliska mieszanka. Kup, jeśli będziesz używać tego koloru często, bo mieszanie za każdym razem tak samo jest trudne.'; }
+  else { v = 'Uzupełni kolekcję'; cls = 'q-ok'; why = 'Nie masz niczego podobnego i nie zmieszasz tego koloru z tego, co masz.'; }
+  let extra = '';
+  if (transp) extra = '<p class="small muted">To farba transparentna (wash, contrast). Porównuję sam kolor, ale ona działa inaczej: spływa we wgłębienia i barwi to, co pod spodem. Farba kryjąca jej nie zastąpi.</p>';
+  if (metal) extra = '<p class="small muted">To metalik, więc porównuję go tylko z Twoimi metalikami. Połysku nie da się zmieszać ze zwykłych farb.</p>';
+  box.innerHTML = `
+    <div class="target"><div class="big" style="--c:${c.hex}"></div><div style="display:grid;gap:4px;min-width:0"><h3>${esc(c.name)}</h3><p class="small muted">${esc(c.brand)}, ${ROLE_PL[c.role] || c.role}</p><p class="small">${c.desc.text}</p></div></div>
+    <div class="verdict ${cls}"><strong>${v}</strong><p>${esc(why)}</p></div>${extra}
+    <div style="display:grid;gap:6px"><h3>Najbliższe z Twoich</h3><ul class="plist">${near.map(([p, d]) => prow(p, 'ΔE ' + d.toFixed(1))).join('') || '<li class="small muted">Nie masz farb tego rodzaju.</li>'}</ul></div>
+    ${mix ? `<div style="display:grid;gap:6px"><h3>Najlepsza mieszanka</h3><div class="recipe" style="cursor:default"><span class="pair"><i style="--c:${c.hex}"></i><i style="--c:${linHex(mix.lin)}"></i></span><span class="parts">${partsHtml(mix.parts)}</span><span class="badge ${quality(mix.d)[1]}">${quality(mix.d)[0]}</span></div></div>` : ''}
+    <p class="small">${same.length ? `W grupie „${c.desc.text}” masz już ${same.length} ${pl(same.length, 'farbę', 'farby', 'farb')}: ${same.map(p => esc(p.name)).join(', ')}.` : `W grupie „${c.desc.text}” nie masz jeszcze żadnej farby.`}</p>`;
+}
+function buyEmpty() {
+  $('buyResult').innerHTML = '<h3>Wynik pojawi się tutaj</h3><p class="muted small">Przykład: wpisz „Rhinox Hide”, jeśli zastanawiasz się nad ciemnym brązem.</p>';
+}
+
+/* ---------- SCHEMATY ---------- */
+const HARM = {
+  mono: { name: 'Jednobarwny', off: [0, 0, 0], text: 'Jeden odcień w różnych wartościach. Najbezpieczniejszy na początek: wszystko pasuje, a figurkę budujesz kontrastem jasne–ciemne.' },
+  analog: { name: 'Sąsiedni', off: [0, -32, 32], text: 'Kolory leżące obok siebie na kole. Spokojny, naturalny efekt, jak jesienne liście albo rdza na metalu. Dobry na potwory i skórę.' },
+  compl: { name: 'Dopełniający', off: [0, 0, 180], text: 'Kolor główny i jego przeciwieństwo jako akcent. Najmocniejszy kontrast barwny: akcent dosłownie świeci na tle koloru głównego.' },
+  split: { name: 'Rozszczepione dopełnienie', off: [0, 150, 210], text: 'Zamiast dokładnego przeciwieństwa bierzesz jego dwóch sąsiadów. Kontrast nadal jest wyraźny, ale łatwiej go opanować niż czyste dopełnienie.' },
+  triad: { name: 'Triada', off: [0, 120, 240], text: 'Trzy kolory w równych odstępach. Dużo energii i barw, dlatego trzymaj się ściśle 60/30/10, inaczej zrobi się pstrokato.' },
+};
+let harm = 'compl';
+$('harm').innerHTML = Object.entries(HARM).map(([k, h]) => `<button data-k="${k}" aria-pressed="${k === harm}">${h.name}</button>`).join('');
+$('harm').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; harm = b.dataset.k; $('harm').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); renderScheme(); });
+const baseChoices = mine.filter(p => opaque(p) && p.lch[1] > 0.035);
+$('baseSel').innerHTML = `<option value="__target">Kolor wybrany na kole</option>` + baseChoices.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+$('baseSel').value = (baseChoices.find(p => p.name === 'Macragge Blue') || baseChoices[0]).id;
+$('baseSel').addEventListener('change', renderScheme);
+
+function slotTargets(base) {
+  const [bl, bc, bh] = base.lch, h = HARM[harm];
+  const mk = (l, c, hh) => { hh = (hh + 360) % 360; l = Math.min(0.95, Math.max(0.12, l)); return lch2lab(l, clampToGamut(l, c, hh), hh); };
+  if (harm === 'mono') return [base.lab, mk(bl - 0.2, bc * 0.8, bh), mk(bl + 0.25, bc * 0.6, bh)];
+  if (harm === 'compl') return [base.lab, mk(bl + 0.08, bc * 0.3, bh), mk(0.62, Math.max(bc, 0.13) * 1.1, bh + 180)];
+  return [base.lab, mk(bl + 0.05, bc * 0.6, bh + h.off[1]), mk(0.62, Math.max(bc, 0.12) * 1.1, bh + h.off[2])];
+}
+function renderScheme() {
+  const pool = mixPool(false);
+  let base;
+  const sel = $('baseSel').value;
+  if (sel === '__target') { const r = recipes(target.lab, pool, 1)[0]; base = { name: 'kolor z koła', lab: r.lab, lin: r.lin, ks: ksOf(r.lin), hex: linHex(r.lin), lch: lab2lch(r.lab) }; }
+  else base = mine.find(p => p.id === sel);
+  $('harmText').innerHTML = `<b>${HARM[harm].name}.</b> ${HARM[harm].text}`;
+  const roles = ['Główny, 60%', 'Uzupełniający, 30%', 'Akcent, 10%'];
+  const tg = slotTargets(base);
+  const picks = tg.map((t, i) => i === 0 && base.id ? { parts: [[base, 1]], lin: base.lin, lab: base.lab, d: 0 } : recipes(t, pool, 1)[0]);
+  $('slots').innerHTML = picks.map((r, i) => `<div class="slot"><span class="small muted">${roles[i]}</span><span class="pair"><i style="--c:${linHex(lab2lin(tg[i]))}"></i><i style="--c:${linHex(r.lin)}"></i></span><span class="parts small">${partsHtml(r.parts)}</span>${i && r.d >= 9 ? '<span class="small" style="color:var(--bad)">Nie masz farby w tym kierunku, to dobry kandydat na zakup.</span>' : ''}</div>`).join('');
+  const cols = picks.map(r => linHex(r.lin));
+  $('ratio').innerHTML = `<i style="--c:${cols[0]};flex:6"></i><i style="--c:${cols[1]};flex:3"></i><i style="--c:${cols[2]};flex:1"></i>`;
+  $('shield').innerHTML = `<path d="M100 6 L190 30 L190 110 C190 170 145 205 100 224 C55 205 10 170 10 110 L10 30 Z" fill="${cols[1]}" stroke="rgb(0 0 0 / .35)" stroke-width="2"/>
+    <path d="M100 22 L176 42 L176 110 C176 160 138 192 100 208 C62 192 24 160 24 110 L24 42 Z" fill="${cols[0]}"/>
+    <path d="M100 70 L132 100 L100 160 L68 100 Z" fill="${cols[2]}" stroke="rgb(0 0 0 / .3)" stroke-width="1.5"/>`;
+  renderLadders(base);
+}
+function renderLadders(base) {
+  const op = mine.filter(opaque);
+  const black = op.reduce((a, b) => a.lab[0] < b.lab[0] ? a : b);
+  const white = op.reduce((a, b) => a.lab[0] > b.lab[0] ? a : b);
+  const cools = op.filter(p => p.lch[2] >= 215 && p.lch[2] < 335 && p.lch[1] > 0.05 && p.lab[0] < 0.55);
+  const cool = cools.length ? cools.reduce((a, b) => a.lab[0] < b.lab[0] ? a : b) : black;
+  const warms = op.filter(p => p.lch[2] >= 55 && p.lch[2] < 112 && p.lch[1] > 0.02 && p.lch[1] < 0.12 && p.lab[0] > 0.7);
+  const warm = warms.length ? warms.reduce((a, b) => a.lab[0] > b.lab[0] ? a : b) : white;
+  const m = (a, wa, b, wb) => linHex(mixKs([[a.ks, wa], [b.ks, wb]]));
+  const m3 = (a, wa, b, wb, c, wc) => linHex(mixKs([[a.ks, wa], [b.ks, wb], [c.ks, wc]]));
+  const l1 = [m(base, 1, black, 1), m(base, 3, black, 1), base.hex, m(base, 3, white, 1), m(base, 1, white, 1), m(base, 1, white, 3)];
+  const l2 = [m3(base, 1, cool, 1, black, 1), m(base, 2, cool, 1), base.hex, m(base, 3, warm, 1), m(base, 1, warm, 1), m(warm, 3, white, 1)];
+  $('lad1').innerHTML = l1.map(c => `<i style="--c:${c}"></i>`).join('');
+  $('lad2').innerHTML = l2.map(c => `<i style="--c:${c}"></i>`).join('');
+  $('lad1t').textContent = `Cień: ${black.name}. Światło: ${white.name}.`;
+  $('lad2t').textContent = `Cień: ${cool.name}${cool !== black ? ' z odrobiną ' + black.name : ''}. Światło: ${warm.name}, blask: ${white.name}.`;
+  sphere($('sph1'), l1); sphere($('sph2'), l2);
+}
+function sphere(cv, ladder) {
+  const c = cv.getContext('2d'), S = cv.width, img = c.createImageData(S, S), d = img.data;
+  const rgb = ladder.map(h => { const n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; });
+  const Lt = [-0.5, -0.62, 0.6], ln = Math.hypot(...Lt), l = Lt.map(v => v / ln);
+  const th = [0.12, 0.34, 0.6, 0.8, 0.93];
+  const R = S / 2 - 6;
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const nx = (x - S / 2) / R, ny = (y - S / 2) / R, r2 = nx * nx + ny * ny;
+    if (r2 > 1) continue;
+    const nz = Math.sqrt(1 - r2), s = Math.max(0, nx * l[0] + ny * l[1] + nz * l[2]);
+    let k = 0; while (k < th.length && s > th[k]) k++;
+    const i = (y * S + x) * 4, col = rgb[k], edge = Math.min(1, (1 - Math.sqrt(r2)) * R);
+    d[i] = col[0]; d[i + 1] = col[1]; d[i + 2] = col[2]; d[i + 3] = 255 * edge;
+  }
+  c.clearRect(0, 0, S, S); c.putImageData(img, 0, 0);
+}
+
+/* ---------- KOLEKCJA ---------- */
+function renderCollection() {
+  // skala wartości: kropki ułożone w kolumnach, żeby się nie nakładały
+  const W = 1000, pad = 30, bins = {};
+  let h = `<defs><linearGradient id="vg"><stop offset="0" stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient></defs>
+    <rect x="${pad}" y="118" width="${W - 2 * pad}" height="10" rx="5" fill="url(#vg)" stroke="var(--line)"/>`;
+  for (let v = 0; v <= 100; v += 20) h += `<text x="${pad + (W - 2 * pad) * v / 100}" y="144" text-anchor="middle">${v}</text>`;
+  for (const p of mine) {
+    const x = pad + (W - 2 * pad) * p.lab[0];
+    const b = Math.round(x / 22); bins[b] = (bins[b] || 0) + 1;
+    const y = 104 - (bins[b] - 1) * 22;
+    h += `<circle class="vdot" cx="${x.toFixed(1)}" cy="${y}" r="9.5" fill="${p.hex}" data-g="${p.grey}" data-c="${p.hex}" stroke="rgb(0 0 0 / .3)"><title>${esc(p.name)}: wartość ${Math.round(p.lab[0] * 100)}</title></circle>`;
+  }
+  $('vscale').innerHTML = h;
+  const mid = mine.filter(p => opaque(p) && p.lab[0] >= 0.4 && p.lab[0] < 0.6).length;
+  const pairs = [];
+  const chrom = mine.filter(p => opaque(p) && p.lch[1] > 0.06);
+  for (let i = 0; i < chrom.length; i++) for (let j = i + 1; j < chrom.length; j++) {
+    const a = chrom[i], b = chrom[j];
+    if (Math.abs(a.lab[0] - b.lab[0]) < 0.03 && Math.abs(((a.lch[2] - b.lch[2] + 540) % 360) - 180) > 60) pairs.push([a, b]);
+  }
+  $('valueLesson').innerHTML = `<b>Włącz widok bez koloru.</b> Farby o tej samej wartości stają się jednakowo szare.` +
+    (pairs.length ? ` U Ciebie np. <b>${esc(pairs[0][0].name)}</b> i <b>${esc(pairs[0][1].name)}</b>: różne kolory, prawie ta sama jasność. Położone obok siebie z daleka zleją się w jedną plamę.` : '') +
+    ` Średnich tonów (wartość 40–60) masz ${mid}. To z nich budujesz przejścia między cieniem a światłem.`;
+
+  const op = mine.filter(p => opaque(p) && p.lch[1] >= 0.03);
+  const groupsDef = [...SECTORS.map(s => ({ key: s.key, name: s.name, mid: s.mid })), { key: 'braz', name: 'brąz', mid: 55 }, { key: 'kosc', name: 'kość / beż', mid: 85 }];
+  const pool = mixPool(false);
+  $('cover').innerHTML = groupsDef.map(g => {
+    const ps = op.filter(p => p.desc.sector === g.key);
+    let foot = '';
+    if (!ps.length) {
+      const tl = g.key === 'braz' ? 0.42 : g.key === 'kosc' ? 0.82 : 0.6, tc = g.key === 'braz' ? 0.07 : g.key === 'kosc' ? 0.045 : 0.12;
+      const t = lch2lab(tl, clampToGamut(tl, tc, g.mid), g.mid);
+      const r = recipes(t, pool, 1)[0];
+      foot = r.d < 6 ? `<span class="small muted">Brak farby, ale zmieszasz: ${r.parts.map(([p, n]) => n + '×' + esc(p.name)).join(' + ')}</span>` : `<span class="small" style="color:var(--warn)">Brak i trudno zmieszać. Kandydat na zakup: ${esc(nearest(t, shop.filter(opaque), 1)[0][0].name)}</span>`;
+    }
+    return `<div class="sector ${ps.length ? '' : 'empty'}"><b>${g.name}</b><span class="small muted">${ps.length} ${pl(ps.length, 'farba', 'farby', 'farb')}</span><div class="row">${ps.map(p => `<span class="sw" title="${esc(p.name)}" style="--c:${p.hex};--g:${p.grey};width:20px;height:20px"></span>`).join('')}</div>${foot}</div>`;
+  }).join('');
+
+  const G = [
+    ['Kryjące kolorowe', mine.filter(p => opaque(p) && p.lch[1] >= 0.03)],
+    ['Czerń, biel, szarości', mine.filter(p => opaque(p) && p.lch[1] < 0.03)],
+    ['Washe i contrasty', mine.filter(p => TRANSPARENT.has(p.role))],
+    ['Metaliki i tekstury', mine.filter(p => p.role === 'metallic' || p.role === 'technical')],
+  ];
+  $('groups').innerHTML = G.filter(g => g[1].length).map(([t, ps]) => `<div style="display:grid;gap:6px;min-width:0"><h3>${t} <span class="muted small">${ps.length}</span></h3><ul class="plist">${ps.map(p => prow(p, p.hex.toUpperCase())).join('')}</ul></div>`).join('');
+}
+$('valuesOnly').addEventListener('change', e => {
+  document.body.classList.toggle('values-only', e.target.checked);
+  document.querySelectorAll('.vdot').forEach(c => c.setAttribute('fill', e.target.checked ? c.dataset.g : c.dataset.c));
+});
+
+/* ---------- routing ---------- */
+const VIEWS = ['kolo', 'zakupy', 'schematy', 'kolekcja', 'podstawy'];
+function route() {
+  const v = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'kolo';
+  VIEWS.forEach(k => { $('v-' + k).hidden = k !== v; });
+  document.querySelectorAll('nav.tabs a').forEach(a => a.setAttribute('aria-current', a.getAttribute('href') === '#' + v ? 'page' : 'false'));
+  if (v === 'schematy') renderScheme();
+}
+window.addEventListener('hashchange', route);
+
+/* ---------- start ---------- */
+buildSvg();
+const start = mine.find(p => p.name === 'Macragge Blue') || mine[0];
+setTarget(lch2lab(0.5, 0.11, 155));
+drawWheel();
+buyEmpty();
+renderCollection();
+route();
+})();
+</script>

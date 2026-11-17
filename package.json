@@ -1,0 +1,14 @@
+{
+  "name": "minipainter-color-lab",
+  "version": "0.1.0",
+  "description": "Color-theory add-on for the minipainter paint catalog: mixing recipes, before-you-buy checks and color schemes from the paints you own, for beginner miniature painters.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "private": true
+}
