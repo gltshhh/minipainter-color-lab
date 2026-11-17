@@ -43,6 +43,51 @@ Run `node build.mjs` again whenever your inventory changes.
 | `--inventory <file>` | `$MINIPAINTER_INVENTORY`, else `~/.minipainting/inventory.json` |
 | `--extras <file>` | `./extras.json` |
 
+### Keep it in sync automatically (Claude Code)
+
+minipainter ships an MCP server, so you can manage your collection by talking to Claude ("I just bought Rhinox Hide and Nuln Oil"). Color Lab includes a Claude Code hook that rebuilds the page whenever Claude changes your inventory through that server. Add paints in chat, refresh the page, and they are on the wheel.
+
+1. Register the minipainter MCP server in your project (`.mcp.json`):
+
+   ```json
+   {
+     "mcpServers": {
+       "minipainter": { "command": "minipainter-mcp" }
+     }
+   }
+   ```
+
+   On Windows, use `"command": "node"` with `"args": ["<npm root -g>/minipainter/src/mcp-server.mjs"]` instead.
+
+2. Add the hook to `.claude/settings.json` in the same project, with the path to your Color Lab checkout:
+
+   ```json
+   {
+     "hooks": {
+       "PostToolUse": [
+         {
+           "matcher": "mcp__minipainter__inventory_mark_owned|mcp__minipainter__inventory_mark_unowned",
+           "hooks": [
+             { "type": "command", "command": "node /path/to/minipainter-color-lab/hooks/claude-code-sync.mjs", "timeout": 60 }
+           ]
+         }
+       ]
+     }
+   }
+   ```
+
+3. Restart Claude Code. You can review or disable the hook under `/hooks`.
+
+**Using it on your phone, for example in a store.** A local file does not travel with you. If you use claude.ai, ask Claude Code to publish `app.html` with `data.js` as a private Artifact, then add its link to the same settings file:
+
+```json
+{ "env": { "COLOR_LAB_ARTIFACT_URL": "https://claude.ai/artifact/..." } }
+```
+
+With that set, the hook also asks Claude to republish the Artifact after each batch of inventory changes, so the page you open on your phone is always current.
+
+The hook runs only in Claude Code. If you change your inventory another way (the `mpaint` CLI, the TUI, or Claude Desktop), run `node build.mjs` yourself.
+
 ### Paints missing from the catalog
 
 Put them in `extras.json` (see `extras.example.json`) with a hex color. They show up in your collection and in mixing recipes.
@@ -53,6 +98,7 @@ Put them in `extras.json` (see `extras.example.json`) with a hex color. They sho
 |---|---|
 | `app.html` | the app: markup, styles, and script |
 | `build.mjs` | builds `data.js` from minipainter and wraps `app.html` into `index.html` |
+| `hooks/claude-code-sync.mjs` | Claude Code hook that rebuilds after inventory changes made through MCP |
 | `data.js`, `index.html` | generated from your own collection, not committed |
 
 ## Accuracy
