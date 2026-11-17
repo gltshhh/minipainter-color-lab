@@ -1,7 +1,7 @@
 {
   "name": "minipainter-color-lab",
   "version": "0.1.0",
-  "description": "Color-theory add-on for the minipainter paint catalog: mixing recipes, before-you-buy checks and color schemes from the paints you own, for beginner miniature painters.",
+  "description": "GUI color lab for miniature painters, built on the minipainter paint catalog: color mixing recipes, Citadel/Vallejo/Army Painter/AK equivalents and what paints you are missing.",
   "type": "module",
   "scripts": {
     "build": "node build.mjs"
@@ -10,5 +10,19 @@
     "node": ">=18"
   },
   "license": "MIT",
-  "private": true
+  "private": true,
+  "keywords": [
+    "minipainter",
+    "miniature-painting",
+    "paint-inventory",
+    "paint-tracker",
+    "color-matching",
+    "color-mixing",
+    "color-theory",
+    "paint-converter",
+    "warhammer",
+    "citadel",
+    "vallejo",
+    "army-painter"
+  ]
 }

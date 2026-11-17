@@ -1,11 +1,12 @@
 # minipainter Color Lab
 
-An add-on for [minipainter](https://github.com/ArturSkowronski/minipainter), the local paint catalog and inventory for miniature painters. Color Lab reads minipainter's database (1,600+ paints from Citadel, Army Painter, Vallejo and AK) together with the paints you have marked as owned, and turns them into a local color-theory workbench.
+**GUI color lab for [minipainter](https://github.com/ArturSkowronski/minipainter)**, the open-source miniature paint inventory and paint collection tracker. Color Lab reads minipainter's database (1,600+ paints from Citadel, Army Painter, Vallejo and AK) together with the paints you have marked as owned, and turns them into a local color-theory workbench: mixing recipes from your own paints, closest equivalents across brands (for example Citadel to Vallejo or Army Painter), and a check of what paints you are missing.
 
 It is made for people starting out in the hobby. New painters tend to buy paints they do not need, reach for black and white to shade everything, and pick schemes by guesswork. Color Lab answers the practical questions with the paints you actually own:
 
 - Can I mix this color, and in what ratio?
 - Do I really need that dark brown, or do I already have two?
+- What paints am I missing, and which brand's paint is closest to the one in a tutorial?
 - Which three colors work together on this model, and how do I shade them?
 
 Along the way it teaches the theory behind the answers: hue, value and saturation, why mixing dulls color, complementary colors, warm light and cool shadow, and the 60/30/10 rule.
