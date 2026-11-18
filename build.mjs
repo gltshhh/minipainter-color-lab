@@ -56,14 +56,23 @@ for (const f of readdirSync(catalogDir).filter(f => f.endsWith('.json'))) {
   }
 }
 
-// extras.json: [{ "name": "Dewpath", "brand": "Army Painter", "series": "Warpaints Fanatic", "hex": "#4c8284", "role": "layer" }]
+// extras.json: paints missing from the catalog.
+//   [{ "name": "Dewpath", "brand": "Army Painter", "series": "Warpaints Fanatic", "hex": "#007969", "role": "layer" }]
+// "owned" defaults to true. With "owned": false the paint joins the catalog (shop, search) instead of your collection.
 const extras = [];
+let extraCatalog = 0;
+const slug = s => s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 if (existsSync(extrasPath)) {
+  const seen = new Set();
   for (const e of JSON.parse(readFileSync(extrasPath, 'utf8'))) {
     if (!/^#[0-9a-f]{6}$/i.test(e.hex || '')) { console.warn(`Skipping extra paint "${e.name}": hex must look like #4c8284`); continue; }
     const n = parseInt(e.hex.slice(1), 16);
     const brand = e.series ? `${e.brand}, ${e.series}` : e.brand;
-    extras.push([`extra/${e.name.toLowerCase().replace(/\s+/g, '-')}`, e.name, brand, e.role || 'layer', n >> 16, (n >> 8) & 255, n & 255]);
+    const id = `extra-${slug(brand)}/${slug(e.name)}`;
+    if (seen.has(id)) { console.warn(`Skipping duplicate extra paint "${e.name}" (${brand})`); continue; }
+    seen.add(id);
+    const row = [id, e.name, brand, e.role || 'layer', n >> 16, (n >> 8) & 255, n & 255];
+    if (e.owned === false) { catalog.push(row); extraCatalog++; } else extras.push(row);
   }
 }
 
@@ -77,5 +86,5 @@ writeFileSync(join(here, 'index.html'),
   app.replace(/(<\/style>)/, '$1\n</head>\n<body>') + '\n</body>\n</html>\n');
 
 console.log(`Catalog: ${catalog.length} paints (${catalogDir})`);
-console.log(`Owned: ${owned.length} from ${inventoryPath}, extra: ${extras.length}`);
+console.log(`Owned: ${owned.length} from ${inventoryPath}, extra owned: ${extras.length}, extra in catalog: ${extraCatalog}`);
 console.log(`Open ${join(here, 'index.html')} in your browser.`);

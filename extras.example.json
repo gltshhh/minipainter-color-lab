@@ -1,3 +1,4 @@
 [
-  { "name": "Dewpath", "brand": "Army Painter", "series": "Warpaints Fanatic", "hex": "#4c8284", "role": "layer" }
+  { "name": "Dewpath", "brand": "Army Painter", "series": "Warpaints Fanatic", "hex": "#007969", "role": "layer" },
+  { "name": "White Star", "brand": "Two Thin Coats", "series": "Wave 1", "hex": "#f7fcf7", "role": "layer", "owned": false }
 ]

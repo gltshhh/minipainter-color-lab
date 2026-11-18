@@ -248,7 +248,7 @@ footer { font-size: .85rem; color: var(--muted); max-width: 75ch; }
     <div class="cols">
       <div class="panel">
         <h2>Czy ta farba mi się przyda?</h2>
-        <p class="muted small">Wpisz nazwę farby z dowolnej z czterech marek albo kod hex. Sprawdzę, czy masz coś podobnego i czy zmieszasz ten kolor sam.</p>
+        <p class="muted small">Wpisz nazwę farby z katalogu albo kod hex. Sprawdzę, czy masz coś podobnego i czy zmieszasz ten kolor sam.</p>
         <div class="search">
           <input type="text" id="q" placeholder="np. Rhinox Hide albo #4a3020" aria-label="Szukaj farby" autocomplete="off" spellcheck="false">
           <ul class="hits" id="hits"></ul>
@@ -470,9 +470,9 @@ const prow = (p, right = '') => `<li class="prow"><span class="sw" style="--c:${
 
 /* ---------- nagłówek ---------- */
 const $ = id => document.getElementById(id);
-$('sub').textContent = `${mine.length} ${pl(mine.length, 'farba', 'farby', 'farb')} w kolekcji, ${catalog.length} w katalogu czterech marek. Dane z ${D.generated.split('-').reverse().join('.')}.`;
+$('sub').textContent = `${mine.length} ${pl(mine.length, 'farba', 'farby', 'farb')} w kolekcji, ${catalog.length} w katalogu (${new Set(catalog.map(p => p.brand.split(',')[0])).size} marek). Dane z ${D.generated.split('-').reverse().join('.')}.`;
 $('pots').innerHTML = mine.map(p => `<i style="--c:${p.hex};--g:${p.grey}" title="${esc(p.name)}"></i>`).join('');
-$('foot').textContent = 'Kolory farb pochodzą z katalogu minipainter i są przybliżone. Mieszalnik używa modelu pigmentowego, który dobrze oddaje kierunek mieszanki, ale nie zastąpi próby na palecie. Tło jest celowo neutralnie szare.';
+$('foot').textContent = 'Kolory farb pochodzą z katalogu minipainter i z pliku extras.json, więc są przybliżone. Mieszalnik używa modelu pigmentowego, który dobrze oddaje kierunek mieszanki, ale nie zastąpi próby na palecie. Tło jest celowo neutralnie szare.';
 
 /* ---------- KOŁO ---------- */
 const CMAX = 0.3;

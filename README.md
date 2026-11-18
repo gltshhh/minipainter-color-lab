@@ -90,7 +90,7 @@ The hook runs only in Claude Code. If you change your inventory another way (the
 
 ### Paints missing from the catalog
 
-Put them in `extras.json` (see `extras.example.json`) with a hex color. They show up in your collection and in mixing recipes.
+Put them in `extras.json` (see `extras.example.json`) with a hex color. They show up in your collection and in mixing recipes. Add `"owned": false` to add a paint to the catalog instead (search, equivalents, shopping list), for example a whole range minipainter does not ship yet.
 
 ## Files
 
