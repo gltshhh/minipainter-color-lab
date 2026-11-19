@@ -3,16 +3,17 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
 <style>
-/* Layout: aplikacja na neutralnej szarości (jak podkład na figurce), kolor niosą wyłącznie farby.
-   Zakładki: koło + mieszalnik | przed zakupem | schematy | kolekcja | podstawy. */
+/* Layout: the app sits on neutral grey (like primer on a miniature), so the only color comes from the paints.
+   Tabs: wheel + mixer | before you buy | schemes | collection | shopping list | basics.
+   Route ids stay Polish (#kolo, #zakupy, ...) so existing links keep working. */
 :root {
-  --ground: #d3d4d5;      /* jasny szary podkład */
+  --ground: #d3d4d5;      /* light grey primer */
   --panel: #e2e3e4;
-  --well: #ecedee;        /* ceramiczna paleta */
+  --well: #ecedee;        /* ceramic palette */
   --ink: #1c1d1e;
   --muted: #55585b;
   --line: #b0b2b4;
-  --brass: #7d5f22;       /* jedyny akcent UI: mosiądz */
+  --brass: #7d5f22;       /* the only UI accent: brass */
   --good: #2f6b3a;
   --warn: #8a5a10;
   --bad: #8e2b2b;
@@ -51,7 +52,8 @@ a { color: var(--ink); text-decoration-color: var(--brass); text-underline-offse
 
 header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px 24px; }
 header.top p { max-width: 60ch; }
-.pots { display: flex; flex-wrap: wrap; gap: 3px; max-width: 360px; }
+.topright { display: grid; gap: 10px; justify-items: end; }
+.pots { display: flex; justify-content: end; flex-wrap: wrap; gap: 3px; max-width: 360px; }
 .pots i { width: 14px; height: 14px; border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 1px rgb(0 0 0 / .18); }
 
 nav.tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--line); }
@@ -62,6 +64,7 @@ nav.tabs a {
 nav.tabs a[aria-current="page"] { color: var(--ink); background: var(--panel); border-color: var(--line); border-bottom-color: var(--panel); }
 
 section.view { display: grid; gap: 20px; }
+section.view[hidden] { display: none; }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 14px; align-content: start; min-width: 0; }
 .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
 .cols-wheel { display: grid; grid-template-columns: minmax(0, 520px) minmax(0, 1fr); gap: 20px; align-items: start; }
@@ -69,16 +72,30 @@ section.view { display: grid; gap: 20px; }
 .lesson { font-size: .94rem; max-width: 68ch; color: var(--muted); }
 .lesson b { font-weight: 700; color: var(--ink); }
 
-/* koło */
+/* wheel */
 .wheelbox { position: relative; width: 100%; max-width: 520px; aspect-ratio: 1; }
 .wheelbox canvas, .wheelbox svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .wheelbox svg { cursor: crosshair; touch-action: manipulation; }
+.wheelbox.zoomed svg { cursor: grab; }
+.wheelbox.panning svg { cursor: grabbing; }
+.wheelbox svg circle { vector-effect: non-scaling-stroke; }
 .wheelbox .dot { cursor: pointer; }
-.wheelbox .dot circle { stroke: var(--ground); stroke-width: .009; }
+.wheelbox .dot circle { stroke: var(--ground); stroke-width: 1.5px; }
 .wheelbox .dot.dim { opacity: .38; }
-.wheelbox .dot.sel circle { stroke: var(--ink); stroke-width: .016; }
-.wheelbox .dot:focus-visible { outline: none; }
-.wheelbox .dot:focus-visible circle { stroke: var(--brass); stroke-width: .02; }
+.wheelbox .dot.sel circle { stroke: var(--ink); stroke-width: 3px; }
+/* Chrome draws the focus ring in SVG units, so clicking a dot covered the whole wheel in black. Keyboard users get the brass ring below. */
+.wheelbox .dot, .wheelbox .dot:focus, .wheelbox .dot:focus-visible { outline: none; }
+.wheelbox .dot:focus-visible circle { stroke: var(--brass); stroke-width: 3.5px; }
+.zoombar { position: absolute; top: 6px; right: 6px; display: flex; gap: 4px; }
+.zoombar button { font: inherit; font-size: .85rem; font-weight: 700; min-width: 32px; height: 32px; padding: 0 8px; color: var(--ink); background: var(--well); border: 1px solid var(--line); border-radius: var(--r); cursor: pointer; }
+.zoombar button:disabled { opacity: .45; cursor: default; }
+
+/* paint tooltip on hover */
+#tip { position: fixed; left: 0; top: 0; z-index: 10; pointer-events: none; max-width: 260px; padding: 5px 9px; border-radius: var(--r);
+  background: var(--ink); color: var(--ground); font-size: .85rem; line-height: 1.35; box-shadow: 0 2px 8px rgb(0 0 0 / .25);
+  opacity: 0; transition: opacity 120ms linear; }
+#tip.on { opacity: 1; }
+#tip b { display: block; }
 .hue-label { font-family: var(--display); font-stretch: 80%; font-size: .052px; fill: var(--muted); text-anchor: middle; dominant-baseline: middle; }
 #marker { transition: transform 180ms var(--ease-out); pointer-events: none; }
 .slider-row { display: grid; gap: 6px; }
@@ -99,7 +116,7 @@ input[type=text] { width: 10ch; }
 .check { display: flex; gap: 8px; align-items: center; font-size: .9rem; }
 .check input { accent-color: var(--brass); width: 16px; height: 16px; }
 
-/* przepisy */
+/* recipes */
 .recipes { display: grid; gap: 6px; list-style: none; margin: 0; padding: 0; }
 .recipe {
   display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 12px; align-items: center; width: 100%;
@@ -128,7 +145,7 @@ input[type=text] { width: 10ch; }
   .puddle, .drop, #marker, .sw { transition: none !important; }
 }
 
-/* listy farb */
+/* paint lists */
 .sw { width: 26px; height: 26px; border-radius: 50%; background: var(--c); flex: none; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .22); transition: background-color 320ms var(--ease-out); }
 .values-only .sw, .values-only .dotc, .values-only .pots i { background: var(--g); }
 .plist { display: grid; gap: 2px; list-style: none; margin: 0; padding: 0; }
@@ -137,7 +154,7 @@ input[type=text] { width: 10ch; }
 .prow .nm { font-weight: 700; }
 .tag { font-size: .78rem; color: var(--muted); }
 
-/* zakupy */
+/* before you buy */
 .search { position: relative; display: grid; gap: 6px; }
 .search input { width: 100%; }
 .hits { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
@@ -148,13 +165,14 @@ input[type=text] { width: 10ch; }
 .verdict strong { font-family: var(--display); font-stretch: 80%; font-size: 1.5rem; line-height: 1.1; }
 .verdict p { color: var(--ink); }
 
-/* schematy */
+/* schemes */
 .seg { display: flex; flex-wrap: wrap; gap: 6px; }
 .seg button { font: inherit; font-size: .92rem; color: var(--ink); background: var(--well); border: 1px solid var(--line); border-radius: 99px; padding: 5px 13px; cursor: pointer; }
 .seg button[aria-pressed="true"] { border-color: var(--brass); background: var(--panel); box-shadow: inset 0 0 0 1px var(--brass); font-weight: 700; }
 .slots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 @media (max-width: 620px) { .slots { grid-template-columns: minmax(0, 1fr); } }
-.slot { display: grid; gap: 8px; align-content: start; }
+.slot { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.slot .part { white-space: normal; }
 .slot .pair { width: 100%; height: 54px; }
 .ratio { display: flex; height: 40px; border-radius: var(--r); overflow: hidden; box-shadow: inset 0 0 0 1px var(--line); }
 .ratio i { background: var(--c); }
@@ -165,7 +183,7 @@ input[type=text] { width: 10ch; }
 .ladder i { flex: 1; background: var(--c); }
 .shield { width: 100%; max-width: 200px; justify-self: center; }
 
-/* kolekcja */
+/* collection */
 .vscale { width: 100%; height: auto; display: block; }
 .vscale text { font-size: 11px; fill: var(--muted); font-family: var(--body); }
 .cover { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
@@ -177,41 +195,65 @@ input[type=text] { width: 10ch; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; display: grid; gap: 8px; align-content: start; }
 .card p { font-size: .95rem; }
 footer { font-size: .85rem; color: var(--muted); max-width: 75ch; }
+
+/* equivalents and shopping list */
+.btn { font: inherit; font-size: .9rem; font-weight: 700; color: var(--ink); background: var(--well); border: 1px solid var(--brass); border-radius: 99px; padding: 6px 14px; cursor: pointer; justify-self: start; }
+.btn[aria-pressed="true"] { background: var(--panel); box-shadow: inset 0 0 0 1px var(--brass); }
+.btn.quiet { border-color: var(--line); font-weight: 400; }
+.eq { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.eq button { width: 100%; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: center; text-align: left; font: inherit; color: inherit;
+  background: none; border: 0; border-bottom: 1px solid var(--line); padding: 6px 0; cursor: pointer; }
+.eq li:last-child button { border-bottom: 0; }
+.eq button:hover .nm { text-decoration: underline; text-decoration-color: var(--brass); }
+.shop { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.shop li { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 12px; align-items: start; background: var(--well); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; }
+.shop li.bought { opacity: .6; }
+.shop li.bought .nm { text-decoration: line-through; }
+.shop .sw { width: 30px; height: 30px; }
+.shop .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: end; }
+.shop .alts { font-size: .82rem; color: var(--muted); }
+.count { font-variant-numeric: tabular-nums; font-size: .8em; color: var(--brass); }
 </style>
 
 <div class="wrap" id="app">
   <header class="top">
     <div style="display:grid;gap:6px">
-      <h1>Pracownia barw</h1>
+      <h1 data-i="h1">Pracownia barw</h1>
       <p class="muted" id="sub"></p>
     </div>
-    <div class="pots" id="pots" aria-hidden="true"></div>
+    <div class="topright">
+      <button class="btn quiet" id="langBtn"></button>
+      <div class="pots" id="pots" aria-hidden="true"></div>
+    </div>
   </header>
 
-  <nav class="tabs" aria-label="Widoki">
-    <a href="#kolo">Koło i mieszanie</a>
-    <a href="#zakupy">Przed zakupem</a>
-    <a href="#schematy">Schematy</a>
-    <a href="#kolekcja">Kolekcja</a>
-    <a href="#podstawy">Podstawy</a>
+  <nav class="tabs" aria-label="Widoki" data-i-aria="nav">
+    <a href="#kolo" data-i="tab.kolo">Koło i mieszanie</a>
+    <a href="#zakupy" data-i="tab.zakupy">Przed zakupem</a>
+    <a href="#schematy" data-i="tab.schematy">Schematy</a>
+    <a href="#kolekcja" data-i="tab.kolekcja">Kolekcja</a>
+    <a href="#lista"><span data-i="tab.lista">Lista zakupów</span> <span class="count" id="shopCount"></span></a>
+    <a href="#podstawy" data-i="tab.podstawy">Podstawy</a>
   </nav>
 
-  <!-- KOŁO -->
+  <!-- WHEEL -->
   <section class="view" id="v-kolo">
     <div class="cols-wheel">
       <div class="panel">
         <div class="wheelbox">
           <canvas id="wheel" aria-hidden="true"></canvas>
-          <svg id="wheelsvg" viewBox="-1.2 -1.2 2.4 2.4" role="img" aria-label="Koło barw z Twoimi farbami. Kliknij, żeby wybrać kolor docelowy."></svg>
+          <svg id="wheelsvg" viewBox="-1.2 -1.2 2.4 2.4" role="img" aria-label="Koło barw z Twoimi farbami. Kliknij, żeby wybrać kolor docelowy." data-i-aria="wheel"></svg>
+          <div class="zoombar"><button id="zoomIn" aria-label="Przybliż koło" data-i-aria="zoomIn">+</button><button id="zoomOut" aria-label="Oddal koło" data-i-aria="zoomOut">−</button><button id="zoomReset" data-i="zoomReset">Całe koło</button></div>
         </div>
         <div class="slider-row">
-          <label for="lslider"><span>Wartość (jasność) przekroju</span><span class="num" id="lval"></span></label>
+          <label for="lslider"><span data-i="slice">Wartość (jasność) przekroju</span><span class="num" id="lval"></span></label>
           <input type="range" id="lslider" min="5" max="97" value="55">
           <div class="vstrip" aria-hidden="true"></div>
         </div>
         <div class="legend">
-          <span>Kropka to Twoja farba. Odcień to kąt, nasycenie to odległość od środka.</span>
-          <span>Blade kropki mają inną wartość niż ten przekrój.</span>
+          <span data-i="leg1">Kropka to Twoja farba. Odcień to kąt, nasycenie to odległość od środka.</span>
+          <span data-i="leg2">Blade kropki mają inną wartość niż ten przekrój.</span>
+          <span data-i="leg3">Kółkiem myszy przybliżysz koło, a przeciągając je przesuniesz.</span>
         </div>
       </div>
 
@@ -219,38 +261,38 @@ footer { font-size: .85rem; color: var(--muted); max-width: 75ch; }
         <div class="target">
           <div class="big" id="tswatch"></div>
           <div style="display:grid;gap:6px;min-width:0">
-            <h3 id="tname">Kolor docelowy</h3>
+            <h3 id="tname"></h3>
             <p class="small muted num" id="tmeta"></p>
             <div class="picker">
-              <input type="color" id="tcolor" aria-label="Wybierz kolor">
-              <input type="text" id="thex" aria-label="Kod hex" spellcheck="false">
+              <input type="color" id="tcolor" aria-label="Wybierz kolor" data-i-aria="pick">
+              <input type="text" id="thex" aria-label="Kod hex" data-i-aria="hex" spellcheck="false">
             </div>
           </div>
         </div>
-        <label class="check"><input type="checkbox" id="incTransparent"> Mieszaj też washe i contrasty</label>
+        <label class="check"><input type="checkbox" id="incTransparent"> <span data-i="incT">Mieszaj też washe i contrasty</span></label>
         <div style="display:grid;gap:8px">
-          <h3>Jak to zmieszać z Twoich farb</h3>
+          <h3 data-i="h.mix">Jak to zmieszać z Twoich farb</h3>
           <ul class="recipes" id="recipes"></ul>
           <p class="small muted" id="recipeNote"></p>
         </div>
-        <div class="mixwell" id="mixwell" aria-hidden="true"><div class="puddle" id="puddle"></div><div class="mixcap" id="mixcap">Kliknij przepis, żeby zobaczyć proporcje</div></div>
+        <div class="mixwell" id="mixwell" aria-hidden="true"><div class="puddle" id="puddle"></div><div class="mixcap" id="mixcap"></div></div>
         <div style="display:grid;gap:6px">
-          <h3>Najbliższe farby w sklepie</h3>
+          <h3 data-i="h.near">Najbliższe farby w sklepie</h3>
           <ul class="plist" id="shopNear"></ul>
         </div>
       </div>
     </div>
-    <p class="lesson"><b>Mieszanie zawsze trochę gasi kolor.</b> Mieszanka nie będzie bardziej nasycona niż farby, z których powstała. Jeśli cel leży dalej od środka koła niż Twoje kropki w tym kierunku, przepis go nie dogoni. Wtedy pomoże tylko nowa farba.</p>
+    <p class="lesson" data-i="lesson.mix"><b>Mieszanie zawsze trochę gasi kolor.</b> Mieszanka nie będzie bardziej nasycona niż farby, z których powstała. Jeśli cel leży dalej od środka koła niż Twoje kropki w tym kierunku, przepis go nie dogoni. Wtedy pomoże tylko nowa farba.</p>
   </section>
 
-  <!-- ZAKUPY -->
+  <!-- BEFORE YOU BUY -->
   <section class="view" id="v-zakupy" hidden>
     <div class="cols">
       <div class="panel">
-        <h2>Czy ta farba mi się przyda?</h2>
-        <p class="muted small">Wpisz nazwę farby z katalogu albo kod hex. Sprawdzę, czy masz coś podobnego i czy zmieszasz ten kolor sam.</p>
+        <h2 data-i="buy.h">Czy ta farba mi się przyda?</h2>
+        <p class="muted small" data-i="buy.p">Wpisz nazwę farby z katalogu albo kod hex. Sprawdzę, czy masz coś podobnego i czy zmieszasz ten kolor sam.</p>
         <div class="search">
-          <input type="text" id="q" placeholder="np. Rhinox Hide albo #4a3020" aria-label="Szukaj farby" autocomplete="off" spellcheck="false">
+          <input type="text" id="q" placeholder="np. Rhinox Hide albo #4a3020" aria-label="Szukaj farby" data-i-ph="q.ph" data-i-aria="q" autocomplete="off" spellcheck="false">
           <ul class="hits" id="hits"></ul>
         </div>
       </div>
@@ -258,85 +300,165 @@ footer { font-size: .85rem; color: var(--muted); max-width: 75ch; }
     </div>
   </section>
 
-  <!-- SCHEMATY -->
+  <!-- SCHEMES -->
   <section class="view" id="v-schematy" hidden>
     <div class="panel">
-      <h2>Zestaw kolorów do modelu</h2>
+      <h2 data-i="sch.h">Zestaw kolorów do modelu</h2>
       <div class="picker">
-        <label for="baseSel" class="small">Kolor główny</label>
+        <label for="baseSel" class="small" data-i="sch.base">Kolor główny</label>
         <select id="baseSel"></select>
       </div>
-      <div class="seg" id="harm" role="group" aria-label="Harmonia"></div>
+      <div class="seg" id="harm" role="group" aria-label="Harmonia" data-i-aria="harm"></div>
       <p class="lesson" id="harmText"></p>
     </div>
     <div class="cols">
       <div class="panel">
-        <h3>Proporcje 60 / 30 / 10</h3>
+        <h3 data-i="ratio.h">Proporcje 60 / 30 / 10</h3>
         <div class="slots" id="slots"></div>
         <div class="ratio" id="ratio" aria-hidden="true"></div>
-        <svg class="shield" id="shield" viewBox="0 0 200 230" role="img" aria-label="Podgląd tarczy w kolorach zestawu"></svg>
-        <p class="lesson"><b>60 / 30 / 10:</b> jeden kolor rządzi (pancerz, płaszcz), drugi go wspiera (skóra, pasy), trzeci to akcent (soczewki, klejnoty, znaki). Akcent działa, bo go mało.</p>
+        <svg class="shield" id="shield" viewBox="0 0 200 230" role="img" aria-label="Podgląd tarczy w kolorach zestawu" data-i-aria="shield"></svg>
+        <p class="lesson" data-i="lesson.6030"><b>60 / 30 / 10:</b> jeden kolor rządzi (pancerz, płaszcz), drugi go wspiera (skóra, pasy), trzeci to akcent (soczewki, klejnoty, znaki). Akcent działa, bo go mało.</p>
       </div>
       <div class="panel">
-        <h3>Cienie i światła koloru głównego</h3>
+        <h3 data-i="sh.h">Cienie i światła koloru głównego</h3>
         <div class="spheres">
-          <div class="sphere"><canvas id="sph1" width="190" height="190" aria-label="Kula cieniowana czernią i bielą"></canvas><div class="ladder" id="lad1"></div><p class="small"><b>Czerń i biel.</b> <span class="muted" id="lad1t"></span></p></div>
-          <div class="sphere"><canvas id="sph2" width="190" height="190" aria-label="Kula z zimnym cieniem i ciepłym światłem"></canvas><div class="ladder" id="lad2"></div><p class="small"><b>Zimny cień, ciepłe światło.</b> <span class="muted" id="lad2t"></span></p></div>
+          <div class="sphere"><canvas id="sph1" width="190" height="190" aria-label="Kula cieniowana czernią i bielą" data-i-aria="sph1"></canvas><div class="ladder" id="lad1"></div><p class="small"><b data-i="sph1.b">Czerń i biel.</b> <span class="muted" id="lad1t"></span></p></div>
+          <div class="sphere"><canvas id="sph2" width="190" height="190" aria-label="Kula z zimnym cieniem i ciepłym światłem" data-i-aria="sph2"></canvas><div class="ladder" id="lad2"></div><p class="small"><b data-i="sph2.b">Zimny cień, ciepłe światło.</b> <span class="muted" id="lad2t"></span></p></div>
         </div>
-        <p class="lesson"><b>Porównaj kule.</b> Czerń i biel tylko przyciemniają i rozbielają, więc kolor szarzeje. Cień przełamany chłodną barwą i światło ocieplone kością dają więcej życia. Tak malują ludzie, którzy wygrywają konkursy.</p>
+        <p class="lesson" data-i="lesson.sph"><b>Porównaj kule.</b> Czerń i biel tylko przyciemniają i rozbielają, więc kolor szarzeje. Cień przełamany chłodną barwą i światło ocieplone kością dają więcej życia. Tak malują ludzie, którzy wygrywają konkursy.</p>
       </div>
     </div>
   </section>
 
-  <!-- KOLEKCJA -->
+  <!-- COLLECTION -->
   <section class="view" id="v-kolekcja" hidden>
     <div class="panel">
       <div style="display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between;align-items:center">
-        <h2>Skala wartości</h2>
-        <label class="check"><input type="checkbox" id="valuesOnly"> Pokaż same wartości (bez koloru)</label>
+        <h2 data-i="val.h">Skala wartości</h2>
+        <label class="check"><input type="checkbox" id="valuesOnly"> <span data-i="valOnly">Pokaż same wartości (bez koloru)</span></label>
       </div>
-      <svg class="vscale" id="vscale" viewBox="0 0 1000 150" role="img" aria-label="Farby rozłożone od najciemniejszej do najjaśniejszej"></svg>
+      <svg class="vscale" id="vscale" viewBox="0 0 1000 150" role="img" aria-label="Farby rozłożone od najciemniejszej do najjaśniejszej" data-i-aria="vscale"></svg>
       <p class="lesson" id="valueLesson"></p>
     </div>
     <div class="panel">
-      <h2>Pokrycie koła barw</h2>
-      <p class="small muted">Farby kryjące według odcienia. Szare, czerń, biel, metaliki i washe są niżej na liście.</p>
+      <h2 data-i="cov.h">Pokrycie koła barw</h2>
+      <p class="small muted" data-i="cov.p">Farby kryjące według odcienia. Szarości, czerń, biel, metaliki i washe są niżej na liście.</p>
       <div class="cover" id="cover"></div>
     </div>
     <div class="panel">
-      <h2>Wszystkie farby</h2>
+      <div style="display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between;align-items:center">
+        <h2 data-i="all.h">Wszystkie farby</h2>
+        <div class="seg" id="groupBy" role="group" aria-label="Grupuj farby" data-i-aria="groupBy">
+          <button data-k="type" aria-pressed="true" data-i="byType">Według rodzaju</button>
+          <button data-k="brand" aria-pressed="false" data-i="byBrand">Według marki</button>
+        </div>
+      </div>
       <div class="cols" id="groups"></div>
     </div>
   </section>
 
-  <!-- PODSTAWY -->
+  <!-- SHOPPING LIST -->
+  <section class="view" id="v-lista" hidden>
+    <div class="panel">
+      <div style="display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between;align-items:center">
+        <h2 data-i="shop.h">Lista zakupów</h2>
+        <button class="btn quiet" id="clearBought" data-i="clearBought" hidden>Usuń kupione z listy</button>
+      </div>
+      <p class="small muted" id="shopNote" data-i="shopNote">Farbę dodasz do listy w zakładce „Przed zakupem”. Przy każdej pozycji widzisz zamienniki z innych marek, gdyby w sklepie nie było tej konkretnej.</p>
+      <ul class="shop" id="shopList"></ul>
+    </div>
+  </section>
+
+  <!-- BASICS -->
   <section class="view" id="v-podstawy" hidden>
     <div class="cards">
-      <article class="card"><h3>Trzy cechy koloru</h3><p><b>Odcień</b> to rodzaj barwy (czerwień, zieleń). <b>Wartość</b> to jasność. <b>Nasycenie</b> to intensywność: im bliżej środka koła, tym kolor bardziej szary. Na kole widzisz odcień i nasycenie, a suwak pod nim zmienia wartość.</p><p><a href="#kolo">Pobaw się kołem</a></p></article>
-      <article class="card"><h3>Wartość robi robotę</h3><p>Figurka czyta się z daleka dzięki kontrastowi jasne–ciemne, a nie dzięki kolorom. Mephiston Red i Macragge Blue mają bardzo podobną wartość: obok siebie zleją się w jedną plamę. Zmruż oczy albo włącz widok bez koloru.</p><p><a href="#kolekcja">Zobacz swoją skalę wartości</a></p></article>
-      <article class="card"><h3>Farby mieszają się inaczej niż światło</h3><p>Pigment pochłania światło, więc mieszanka jest zwykle ciemniejsza i bardziej zgaszona, niż podpowiada intuicja. Niebieski z żółtym daje przygaszoną, ciemną zieleń, a nie soczystą. Mieszalnik tutaj liczy to modelem pigmentowym (Kubelka–Munk), a nie średnią z RGB.</p></article>
-      <article class="card"><h3>Dopełnienie gasi, czerń brudzi</h3><p>Kolor z przeciwnej strony koła obniża nasycenie bez martwej szarości. Odrobina zieleni zgasi zbyt krzykliwą czerwień, odrobina fioletu przytłumi żółć. Czerń przyciemnia, ale przy okazji szarzy kolor.</p><p><a href="#schematy">Porównaj na kulach</a></p></article>
-      <article class="card"><h3>Ciepłe światło, zimny cień</h3><p>Pod ciepłym światłem cienie wydają się chłodne. Rozjaśniaj kością albo jasnym beżem zamiast czystej bieli, a cienie przełamuj niebieskim lub fioletem. Biel zostaw na ostatnie punkty blasku.</p></article>
-      <article class="card"><h3>60 / 30 / 10</h3><p>Jeden kolor dominuje, drugi wspiera, trzeci akcentuje. Akcent najlepiej działa, gdy jest dopełnieniem koloru głównego: czerwone soczewki na zielonym pancerzu, złoto na fiolecie.</p></article>
-      <article class="card"><h3>Dlaczego tło jest szare</h3><p>Kolor oceniasz zawsze względem otoczenia. Na czerni wszystko wygląda jaśniej, na bieli ciemniej. Neutralna szarość, jak podkład na figurce, najmniej przekłamuje.</p></article>
-      <article class="card"><h3>Przepis to punkt startu</h3><p>Kody kolorów z katalogu są przybliżone, a model mieszania upraszcza rzeczywistość. Zmieszaj kilka kropli na mokrej palecie, połóż na odpadowej figurce i popraw proporcje okiem.</p></article>
+      <article class="card" data-i="card1"><h3>Trzy cechy koloru</h3><p><b>Odcień</b> to rodzaj barwy (czerwień, zieleń). <b>Wartość</b> to jasność. <b>Nasycenie</b> to intensywność: im bliżej środka koła, tym kolor bardziej szary. Na kole widzisz odcień i nasycenie, a suwak pod nim zmienia wartość.</p><p><a href="#kolo">Pobaw się kołem</a></p></article>
+      <article class="card" data-i="card2"><h3>Wartość robi robotę</h3><p>Figurka czyta się z daleka dzięki kontrastowi jasne–ciemne, a nie dzięki kolorom. Mephiston Red i Macragge Blue mają bardzo podobną wartość: obok siebie zleją się w jedną plamę. Zmruż oczy albo włącz widok bez koloru.</p><p><a href="#kolekcja">Zobacz swoją skalę wartości</a></p></article>
+      <article class="card" data-i="card3"><h3>Farby mieszają się inaczej niż światło</h3><p>Pigment pochłania światło, więc mieszanka jest zwykle ciemniejsza i bardziej zgaszona, niż podpowiada intuicja. Niebieski z żółtym daje przygaszoną, ciemną zieleń, a nie soczystą. Mieszalnik tutaj liczy to modelem pigmentowym (Kubelka–Munk), a nie średnią z RGB.</p></article>
+      <article class="card" data-i="card4"><h3>Dopełnienie gasi, czerń brudzi</h3><p>Kolor z przeciwnej strony koła obniża nasycenie bez martwej szarości. Odrobina zieleni zgasi zbyt krzykliwą czerwień, odrobina fioletu przytłumi żółć. Czerń przyciemnia, ale przy okazji szarzy kolor.</p><p><a href="#schematy">Porównaj na kulach</a></p></article>
+      <article class="card" data-i="card5"><h3>Ciepłe światło, zimny cień</h3><p>Pod ciepłym światłem cienie wydają się chłodne. Rozjaśniaj kością albo jasnym beżem zamiast czystej bieli, a cienie przełamuj niebieskim lub fioletem. Biel zostaw na ostatnie punkty blasku.</p></article>
+      <article class="card" data-i="card6"><h3>60 / 30 / 10</h3><p>Jeden kolor dominuje, drugi wspiera, trzeci akcentuje. Akcent najlepiej działa, gdy jest dopełnieniem koloru głównego: czerwone soczewki na zielonym pancerzu, złoto na fiolecie.</p></article>
+      <article class="card" data-i="card7"><h3>Dlaczego tło jest szare</h3><p>Kolor oceniasz zawsze względem otoczenia. Na czerni wszystko wygląda jaśniej, na bieli ciemniej. Neutralna szarość, jak podkład na figurce, najmniej przekłamuje.</p></article>
+      <article class="card" data-i="card8"><h3>Przepis to punkt startu</h3><p>Kody kolorów z katalogu są przybliżone, a model mieszania upraszcza rzeczywistość. Zmieszaj kilka kropli na mokrej palecie, połóż na odpadowej figurce i popraw proporcje okiem.</p></article>
     </div>
   </section>
 
   <footer id="foot"></footer>
+  <div id="tip" role="tooltip" aria-hidden="true"></div>
 </div>
 
 <script src="data.js"></script>
 <script>
 (() => {
 'use strict';
+/* ---------- language: Polish or English ----------
+   The choice is remembered in the browser and defaults to the browser language. Polish text lives in the markup,
+   English in the EN_UI dictionary below (data-i = content, data-i-aria = aria-label, data-i-ph = placeholder).
+   Strings built in code use T('polski', 'English'). */
+const LANG = (() => { try { const s = localStorage.getItem('pb-lang'); if (s === 'pl' || s === 'en') return s; } catch {} return /^pl\b/i.test(navigator.language || '') ? 'pl' : 'en'; })();
+const EN = LANG === 'en';
+const T = (p, e) => EN ? e : p;
+const EN_UI = {
+  'h1': 'Color Lab',
+  'nav': 'Views',
+  'tab.kolo': 'Wheel &amp; mixing', 'tab.zakupy': 'Before you buy', 'tab.schematy': 'Schemes', 'tab.kolekcja': 'Collection', 'tab.lista': 'Shopping list', 'tab.podstawy': 'Basics',
+  'wheel': 'Color wheel with your paints. Click to pick a target color.',
+  'zoomIn': 'Zoom in', 'zoomOut': 'Zoom out', 'zoomReset': 'Whole wheel',
+  'slice': 'Value (lightness) of this slice',
+  'leg1': 'Each dot is one of your paints. Hue is the angle, saturation is the distance from the center.',
+  'leg2': 'Faded dots have a different value than this slice.',
+  'leg3': 'Scroll to zoom the wheel, drag to move it.',
+  'pick': 'Pick a color', 'hex': 'Hex code',
+  'incT': 'Also mix with washes and contrasts',
+  'h.mix': 'How to mix it from your paints',
+  'h.near': 'Closest paints you could buy',
+  'lesson.mix': '<b>Mixing always dulls color a little.</b> A mix is never more saturated than the paints that went into it. If the target sits farther from the center than your dots in that direction, no recipe will reach it. Only a new paint will.',
+  'buy.h': 'Is this paint worth buying?',
+  'buy.p': 'Type the name of a catalog paint or a hex code. You will see whether you already own something similar and whether you can mix the color yourself.',
+  'q.ph': 'e.g. Rhinox Hide or #4a3020', 'q': 'Search for a paint',
+  'sch.h': 'A color set for your model', 'sch.base': 'Main color', 'harm': 'Harmony',
+  'ratio.h': '60 / 30 / 10 proportions', 'shield': 'Shield preview in the colors of the set',
+  'lesson.6030': '<b>60 / 30 / 10:</b> one color rules (armor, cloak), the second supports it (skin, straps), the third is the accent (lenses, gems, markings). The accent works because there is so little of it.',
+  'sh.h': 'Shadows and highlights of the main color',
+  'sph1': 'Sphere shaded with black and white', 'sph2': 'Sphere with a cool shadow and warm light',
+  'sph1.b': 'Black and white.', 'sph2.b': 'Cool shadow, warm light.',
+  'lesson.sph': '<b>Compare the spheres.</b> Black and white only darken and lighten, so the color turns grey. A shadow broken with a cool hue and a highlight warmed with bone bring it to life. That is how competition painters work.',
+  'val.h': 'Value scale', 'valOnly': 'Show values only (no color)', 'vscale': 'Your paints from darkest to lightest',
+  'cov.h': 'Color wheel coverage', 'cov.p': 'Opaque paints by hue. Greys, black, white, metallics and washes are in the list below.',
+  'all.h': 'All paints', 'groupBy': 'Group paints', 'byType': 'By type', 'byBrand': 'By brand',
+  'shop.h': 'Shopping list', 'clearBought': 'Remove bought paints',
+  'shopNote': 'Add paints to the list from the “Before you buy” tab. Each item shows substitutes from other brands, in case the store does not have that exact paint.',
+  'card1': '<h3>The three properties of color</h3><p><b>Hue</b> is the kind of color (red, green). <b>Value</b> is how light or dark it is. <b>Saturation</b> is intensity: the closer to the center of the wheel, the greyer the color. The wheel shows hue and saturation, and the slider below it changes value.</p><p><a href="#kolo">Play with the wheel</a></p>',
+  'card2': '<h3>Value does the work</h3><p>A miniature reads from a distance because of light–dark contrast, not because of color. Mephiston Red and Macragge Blue have almost the same value: side by side they blur into one blob. Squint, or switch to the view without color.</p><p><a href="#kolekcja">See your value scale</a></p>',
+  'card3': '<h3>Paint mixes differently from light</h3><p>Pigment absorbs light, so a mix usually comes out darker and duller than you expect. Blue and yellow give a muted, dark green, not a vivid one. The mixer here uses a pigment model (Kubelka–Munk) instead of averaging RGB.</p>',
+  'card4': '<h3>Complements tone down, black makes mud</h3><p>A color from the opposite side of the wheel lowers saturation without a dead grey. A touch of green tames a loud red, a touch of violet calms a yellow. Black darkens, but it also greys the color.</p><p><a href="#schematy">Compare on the spheres</a></p>',
+  'card5': '<h3>Warm light, cool shadow</h3><p>Under warm light, shadows look cool. Highlight with bone or a light beige instead of pure white, and break your shadows with blue or violet. Keep white for the final specular dots.</p>',
+  'card6': '<h3>60 / 30 / 10</h3><p>One color dominates, the second supports, the third accents. The accent works best as the complement of the main color: red lenses on green armor, gold on purple.</p>',
+  'card7': '<h3>Why the background is grey</h3><p>You always judge a color against what surrounds it. On black everything looks lighter, on white darker. Neutral grey, like primer on a miniature, distorts the least.</p>',
+  'card8': '<h3>A recipe is a starting point</h3><p>Catalog colors are approximate, and the mixing model simplifies real pigments. Mix a few drops on a wet palette, try it on a spare model and adjust the ratio by eye.</p>',
+};
+document.documentElement.lang = LANG;
+document.title = T('Pracownia barw', 'Color Lab');
+if (EN) {
+  document.querySelectorAll('[data-i]').forEach(el => { const v = EN_UI[el.dataset.i]; if (v) el.innerHTML = v; });
+  document.querySelectorAll('[data-i-aria]').forEach(el => { const v = EN_UI[el.dataset.iAria]; if (v) el.setAttribute('aria-label', v); });
+  document.querySelectorAll('[data-i-ph]').forEach(el => { const v = EN_UI[el.dataset.iPh]; if (v) el.setAttribute('placeholder', v); });
+}
+{
+  const b = document.getElementById('langBtn');
+  b.textContent = EN ? 'Polski' : 'English';
+  b.lang = EN ? 'pl' : 'en';
+  b.addEventListener('click', () => { try { localStorage.setItem('pb-lang', EN ? 'pl' : 'en'); } catch {} location.reload(); });
+}
+
 const D = window.PALETA;
 if (!D) {
-  document.getElementById('app').innerHTML = '<div class="panel"><h2>Brak danych</h2><p>Nie znaleziono pliku <b>data.js</b>. Uruchom <code>node build.mjs</code> w folderze projektu i otwórz <b>index.html</b> ponownie.</p></div>';
+  document.getElementById('app').innerHTML = T('<div class="panel"><h2>Brak danych</h2><p>Nie znaleziono pliku <b>data.js</b>. Uruchom <code>node build.mjs</code> w folderze projektu i otwórz <b>index.html</b> ponownie.</p></div>',
+    '<div class="panel"><h2>No data</h2><p><b>data.js</b> was not found. Run <code>node build.mjs</code> in the project folder and open <b>index.html</b> again.</p></div>');
   return;
 }
 
-/* ---------- kolor ---------- */
+/* ---------- color math ---------- */
 const toLin = c => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
 const toByte = x => { x = Math.min(1, Math.max(0, x)); return Math.round(255 * (x <= 0.0031308 ? 12.92 * x : 1.055 * x ** (1 / 2.4) - 0.055)); };
 function lin2lab([r, g, b]) {
@@ -368,50 +490,56 @@ function clampToGamut(L, C, H) {
   for (let i = 0; i < 22; i++) { const mid = (lo + hi) / 2; inGamut(lab2lin(lch2lab(L, mid, H))) ? lo = mid : hi = mid; }
   return lo;
 }
-// Kubelka–Munk (jedna stała) per kanał liniowego RGB: przybliżenie mieszania pigmentów.
+// Single-constant Kubelka–Munk per linear RGB channel: an approximation of pigment mixing.
 const ksOf = lin => lin.map(R => { R = Math.min(1, Math.max(0.002, R)); return (1 - R) ** 2 / (2 * R); });
-function mixKs(items) { // items: [[ks, waga]]
+function mixKs(items) { // items: [[ks, weight]]
   let tot = 0; const k = [0, 0, 0];
   for (const [ks, w] of items) { tot += w; for (let i = 0; i < 3; i++) k[i] += ks[i] * w; }
   return k.map(v => { v /= tot; return 1 + v - Math.sqrt(v * v + 2 * v); });
 }
 
-/* ---------- język ---------- */
-const pl = (n, a, b, c) => n === 1 ? a : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? b : c;
+/* ---------- wording ---------- */
+const plPl = (n, a, b, c) => n === 1 ? a : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? b : c;
+// Plurals: three Polish forms and two English ones, e.g. N(3, ['farba', 'farby', 'farb'], ['paint', 'paints']).
+const N = (n, p, e) => EN ? (n === 1 ? e[0] : e[1]) : plPl(n, ...p);
 const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
-const VAL = { m: ['bardzo ciemny', 'ciemny', 'średni', 'jasny', 'bardzo jasny'], f: ['bardzo ciemna', 'ciemna', 'średnia', 'jasna', 'bardzo jasna'] };
+const VAL = EN
+  ? { m: ['very dark', 'dark', 'mid', 'light', 'very light'], f: ['very dark', 'dark', 'mid', 'light', 'very light'] }
+  : { m: ['bardzo ciemny', 'ciemny', 'średni', 'jasny', 'bardzo jasny'], f: ['bardzo ciemna', 'ciemna', 'średnia', 'jasna', 'bardzo jasna'] };
 const valBucket = L => L < 0.32 ? 0 : L < 0.47 ? 1 : L < 0.66 ? 2 : L < 0.82 ? 3 : 4;
 const SECTORS = [
-  { key: 'czerwien', name: 'czerwień', g: 'f', from: 15, to: 45, mid: 30 },
-  { key: 'pomarancz', name: 'pomarańcz', g: 'm', from: 45, to: 72, mid: 58 },
-  { key: 'zolc', name: 'żółć', g: 'f', from: 72, to: 112, mid: 95 },
-  { key: 'zielen', name: 'zieleń', g: 'f', from: 112, to: 165, mid: 138 },
-  { key: 'turkus', name: 'turkus', g: 'm', from: 165, to: 215, mid: 190 },
-  { key: 'niebieski', name: 'niebieski', g: 'm', from: 215, to: 272, mid: 250 },
-  { key: 'fiolet', name: 'fiolet', g: 'm', from: 272, to: 322, mid: 300 },
-  { key: 'roz', name: 'róż i purpura', g: 'm', from: 322, to: 375, mid: 350 },
+  { key: 'czerwien', name: T('czerwień', 'red'), g: 'f', from: 15, to: 45, mid: 30 },
+  { key: 'pomarancz', name: T('pomarańcz', 'orange'), g: 'm', from: 45, to: 72, mid: 58 },
+  { key: 'zolc', name: T('żółć', 'yellow'), g: 'f', from: 72, to: 112, mid: 95 },
+  { key: 'zielen', name: T('zieleń', 'green'), g: 'f', from: 112, to: 165, mid: 138 },
+  { key: 'turkus', name: T('turkus', 'turquoise'), g: 'm', from: 165, to: 215, mid: 190 },
+  { key: 'niebieski', name: T('niebieski', 'blue'), g: 'm', from: 215, to: 272, mid: 250 },
+  { key: 'fiolet', name: T('fiolet', 'violet'), g: 'm', from: 272, to: 322, mid: 300 },
+  { key: 'roz', name: T('róż i purpura', 'pink and purple'), g: 'm', from: 322, to: 375, mid: 350 },
 ];
 const sectorOf = H => SECTORS.find(s => (H >= s.from && H < s.to) || (H + 360 >= s.from && H + 360 < s.to));
 function describe(lab) {
   const [L, C, H] = lab2lch(lab);
   const vb = valBucket(L);
   if (C < 0.03) {
-    if (L < 0.27) return { key: 'czern', text: 'czerń', neutral: true };
-    if (L > 0.9) return { key: 'biel', text: 'biel', neutral: true };
-    return { key: 'szary' + vb, text: VAL.f[vb] + ' szarość', neutral: true };
+    if (L < 0.27) return { key: 'czern', text: T('czerń', 'black'), neutral: true };
+    if (L > 0.9) return { key: 'biel', text: T('biel', 'white'), neutral: true };
+    return { key: 'szary' + vb, text: VAL.f[vb] + T(' szarość', ' grey'), neutral: true };
   }
-  if (H >= 22 && H < 95 && C < 0.14 && L < 0.6) return { key: 'braz' + vb, text: VAL.m[vb] + ' brąz', sector: 'braz' };
-  if (H >= 55 && H < 112 && C < 0.09 && L >= 0.6) return { key: 'kosc' + vb, text: (vb >= 4 ? 'jasna ' : '') + 'kość / beż', sector: 'kosc' };
+  if (H >= 22 && H < 95 && C < 0.14 && L < 0.6) return { key: 'braz' + vb, text: VAL.m[vb] + T(' brąz', ' brown'), sector: 'braz' };
+  if (H >= 55 && H < 112 && C < 0.09 && L >= 0.6) return { key: 'kosc' + vb, text: (vb >= 4 ? T('jasna ', 'light ') : '') + T('kość / beż', 'bone / beige'), sector: 'kosc' };
   const s = sectorOf(H);
   let name = s.name, g = s.g;
-  if (s.key === 'roz' && L < 0.5) { name = 'śliwka'; g = 'f'; }
-  const muted = C < 0.07 ? (g === 'f' ? ' przygaszona' : ' przygaszony') : '';
+  if (s.key === 'roz' && L < 0.5) { name = T('śliwka', 'plum'); g = 'f'; }
+  const muted = C < 0.07 ? (EN ? ' muted' : g === 'f' ? ' przygaszona' : ' przygaszony') : '';
   return { key: s.key + vb, text: VAL[g][vb] + muted + ' ' + name, sector: s.key };
 }
-const ROLE_PL = { base: 'base', layer: 'layer', shade: 'wash', contrast: 'contrast', speedpaint: 'speedpaint', metallic: 'metalik', technical: 'technical / tekstura', air: 'air', dry: 'dry', ink: 'ink' };
+const ROLE_PL = EN
+  ? { base: 'base', layer: 'layer', shade: 'wash', contrast: 'contrast', speedpaint: 'speedpaint', metallic: 'metallic', technical: 'technical / texture', air: 'air', dry: 'dry', ink: 'ink' }
+  : { base: 'base', layer: 'layer', shade: 'wash', contrast: 'contrast', speedpaint: 'speedpaint', metallic: 'metalik', technical: 'technical / tekstura', air: 'air', dry: 'dry', ink: 'ink' };
 const TRANSPARENT = new Set(['shade', 'contrast', 'speedpaint', 'ink']);
 
-/* ---------- dane ---------- */
+/* ---------- data ---------- */
 const ownedSet = new Set(D.owned);
 function mkPaint([id, name, brand, role, r, g, b], owned) {
   const lin = [r, g, b].map(toLin), lab = lin2lab(lin);
@@ -426,7 +554,7 @@ const shop = catalog.filter(p => !p.owned);
 const opaque = p => !TRANSPARENT.has(p.role) && p.role !== 'metallic' && p.role !== 'technical';
 const mixPool = inc => mine.filter(p => opaque(p) || (inc && TRANSPARENT.has(p.role)));
 
-/* ---------- przepisy ---------- */
+/* ---------- recipes ---------- */
 const PAIRS = [[1,1],[2,1],[3,1],[4,1],[1,2],[1,3],[1,4],[3,2],[2,3],[4,3],[3,4]];
 const TRIPLES = [];
 for (let a = 1; a <= 3; a++) for (let b = 1; b <= 3; b++) for (let c = 1; c <= 3; c++) {
@@ -443,7 +571,7 @@ function recipes(target, pool, n = 5) {
   for (const p of pool) push([[p, 1]]);
   for (let i = 0; i < pool.length; i++) for (let j = i + 1; j < pool.length; j++)
     for (const [a, b] of PAIRS) push([[pool[i], a], [pool[j], b]]);
-  // trójki tylko z farb sensownie bliskich celu, żeby nie mnożyć bezsensownych kombinacji
+  // three-paint mixes only from paints reasonably close to the target, to keep the search small
   const near = pool.slice().sort((x, y) => dE(x.lab, target) - dE(y.lab, target)).slice(0, 12);
   for (let i = 0; i < near.length; i++) for (let j = i + 1; j < near.length; j++) for (let k = j + 1; k < near.length; k++)
     for (const [a, b, c] of TRIPLES) push([[near[i], a], [near[j], b], [near[k], c]]);
@@ -458,34 +586,42 @@ function recipes(target, pool, n = 5) {
   return res;
 }
 function quality(d) {
-  if (d < 2.5) return ['prawie identyczny', 'q-great'];
-  if (d < 5) return ['bardzo blisko', 'q-ok'];
-  if (d < 9) return ['ten sam kierunek', 'q-meh'];
-  return ['daleko', 'q-far'];
+  if (d < 2.5) return [T('prawie identyczny', 'near match'), 'q-great'];
+  if (d < 5) return [T('bardzo blisko', 'very close'), 'q-ok'];
+  if (d < 9) return [T('ten sam kierunek', 'same direction'), 'q-meh'];
+  return [T('daleko', 'far off'), 'q-far'];
 }
 const partsHtml = parts => parts.map(([p, w]) =>
-  `<span class="part"><span class="dotc" style="--c:${p.hex};--g:${p.grey}"></span>${parts.length > 1 ? `<b>${w}</b>&nbsp;${pl(w, 'część', 'części', 'części')}` : ''} ${esc(p.name)}</span>`).join('');
+  `<span class="part"><span class="dotc" style="--c:${p.hex};--g:${p.grey}"></span>${parts.length > 1 ? `<b>${w}</b>&nbsp;${N(w, ['część', 'części', 'części'], ['part', 'parts'])}` : ''} ${esc(p.name)}</span>`).join('');
 const nearest = (lab, list, n) => list.map(p => [p, dE(p.lab, lab)]).sort((a, b) => a[1] - b[1]).slice(0, n);
 const prow = (p, right = '') => `<li class="prow"><span class="sw" style="--c:${p.hex};--g:${p.grey}"></span><span style="min-width:0"><span class="nm">${esc(p.name)}</span> <span class="tag">${esc(p.brand)}, ${ROLE_PL[p.role] || p.role}, ${p.desc.text}</span></span><span class="tag num">${right}</span></li>`;
 
-/* ---------- nagłówek ---------- */
+/* ---------- header ---------- */
 const $ = id => document.getElementById(id);
-$('sub').textContent = `${mine.length} ${pl(mine.length, 'farba', 'farby', 'farb')} w kolekcji, ${catalog.length} w katalogu (${new Set(catalog.map(p => p.brand.split(',')[0])).size} marek). Dane z ${D.generated.split('-').reverse().join('.')}.`;
-$('pots').innerHTML = mine.map(p => `<i style="--c:${p.hex};--g:${p.grey}" title="${esc(p.name)}"></i>`).join('');
-$('foot').textContent = 'Kolory farb pochodzą z katalogu minipainter i z pliku extras.json, więc są przybliżone. Mieszalnik używa modelu pigmentowego, który dobrze oddaje kierunek mieszanki, ale nie zastąpi próby na palecie. Tło jest celowo neutralnie szare.';
+{
+  const nb = new Set(catalog.map(p => p.brand.split(',')[0])).size;
+  $('sub').textContent = EN
+    ? `${mine.length} ${N(mine.length, [], ['paint', 'paints'])} in your collection, ${catalog.length} in the catalog (${nb} brands). Data from ${D.generated}.`
+    : `${mine.length} ${N(mine.length, ['farba', 'farby', 'farb'], [])} w kolekcji, ${catalog.length} w katalogu (${nb} ${N(nb, ['marka', 'marki', 'marek'], [])}). Dane z ${D.generated.split('-').reverse().join('.')}.`;
+}
+$('pots').innerHTML = mine.map(p => `<i style="--c:${p.hex};--g:${p.grey}" data-tip="${esc(p.id)}"></i>`).join('');
+$('foot').textContent = T('Kolory farb pochodzą z katalogu minipainter i z pliku extras.json, więc są przybliżone. Mieszalnik używa modelu pigmentowego, który dobrze oddaje kierunek mieszanki, ale nie zastąpi próby na palecie. Tło jest celowo neutralnie szare.',
+  'Paint colors come from the minipainter catalog and from extras.json, so they are approximate. The mixer uses a pigment model that gets the direction of a mix right, but it does not replace a test on your palette. The background is neutral grey on purpose.');
 
-/* ---------- KOŁO ---------- */
+/* ---------- WHEEL ---------- */
 const CMAX = 0.3;
 const canvas = $('wheel'), svg = $('wheelsvg'), slider = $('lslider');
 let L = 0.55, target = null, selRecipe = null;
 const RES = 380;
 canvas.width = RES; canvas.height = RES;
 const ctx = canvas.getContext('2d');
-const R0 = RES / 2 / 1.2; // promień koła w pikselach (viewBox -1.2..1.2)
+// Visible part of the wheel (SVG coordinates, y down): center and half-width. 1.2 = the whole wheel.
+const FULL = 1.2, MIN_H = 0.15;
+const view = { cx: 0, cy: 0, h: FULL };
 function drawWheel() {
   const img = ctx.createImageData(RES, RES), d = img.data;
   for (let y = 0; y < RES; y++) for (let x = 0; x < RES; x++) {
-    const dx = (x - RES / 2) / R0, dy = (RES / 2 - y) / R0, r = Math.hypot(dx, dy);
+    const dx = view.cx + ((x + 0.5) / RES * 2 - 1) * view.h, dy = -(view.cy + ((y + 0.5) / RES * 2 - 1) * view.h), r = Math.hypot(dx, dy);
     if (r > 1) continue;
     const lin = lab2lin(lch2lab(L, r * CMAX, Math.atan2(dy, dx) * 180 / Math.PI));
     if (!inGamut(lin)) continue;
@@ -497,9 +633,9 @@ function drawWheel() {
 const pos = (C, H) => [Math.min(C / CMAX, 1.04) * Math.cos(H * Math.PI / 180), -Math.min(C / CMAX, 1.04) * Math.sin(H * Math.PI / 180)];
 function buildSvg() {
   const NS = 'http://www.w3.org/2000/svg';
-  let h = `<circle cx="0" cy="0" r="1" fill="none" stroke="var(--line)" stroke-width=".006"/>`;
+  let h = `<circle cx="0" cy="0" r="1" fill="none" stroke="var(--line)" stroke-width="1"/>`;
   for (const s of SECTORS) { const [x, y] = pos(CMAX * 1.11, s.mid); h += `<text class="hue-label" x="${x.toFixed(3)}" y="${y.toFixed(3)}">${s.name.split(' ')[0]}</text>`; }
-  h += `<g id="dots"></g><g id="marker"><circle r=".05" fill="none" stroke="#fff" stroke-width=".018"/><circle r=".05" fill="none" stroke="#000" stroke-width=".008"/></g>`;
+  h += `<g id="dots"></g><g id="marker"><circle r=".05" fill="none" stroke="#fff" stroke-width="3.5"/><circle r=".05" fill="none" stroke="#000" stroke-width="1.5"/></g>`;
   svg.innerHTML = h;
   const g = svg.querySelector('#dots');
   for (const p of mine) {
@@ -507,11 +643,62 @@ function buildSvg() {
     const [x, y] = pos(p.lch[1], p.lch[2]);
     const el = document.createElementNS(NS, 'g');
     el.setAttribute('class', 'dot'); el.setAttribute('tabindex', '0'); el.setAttribute('role', 'button');
-    el.setAttribute('aria-label', `${p.name}, ${p.desc.text}`); el.dataset.id = p.id;
-    el.innerHTML = `<title>${esc(p.name)} (${p.desc.text})</title><circle cx="${x.toFixed(3)}" cy="${y.toFixed(3)}" r=".055" fill="${p.hex}"/>`;
+    el.setAttribute('aria-label', `${p.name}, ${p.desc.text}`); el.dataset.id = p.id; el.dataset.tip = p.id;
+    el.innerHTML = `<circle cx="${x.toFixed(3)}" cy="${y.toFixed(3)}" r=".055" fill="${p.hex}"/>`;
     g.appendChild(el);
   }
+  applyView();
 }
+// Zoom: dots, marker and labels keep their on-screen size, and the wheel is redrawn at full resolution.
+function applyView() {
+  const k = view.h / FULL;
+  svg.setAttribute('viewBox', `${(view.cx - view.h).toFixed(4)} ${(view.cy - view.h).toFixed(4)} ${(2 * view.h).toFixed(4)} ${(2 * view.h).toFixed(4)}`);
+  svg.querySelectorAll('.dot circle').forEach(c => c.setAttribute('r', (0.055 * k).toFixed(4)));
+  svg.querySelectorAll('#marker circle').forEach(c => c.setAttribute('r', (0.05 * k).toFixed(4)));
+  svg.querySelectorAll('.hue-label').forEach(t => { t.style.fontSize = (0.052 * k) + 'px'; });
+  const zoomed = view.h < FULL - 1e-6;
+  svg.parentElement.classList.toggle('zoomed', zoomed);
+  $('zoomOut').disabled = $('zoomReset').disabled = !zoomed;
+  $('zoomIn').disabled = view.h <= MIN_H + 1e-6;
+  scheduleWheel();
+}
+function zoomAt(f, px, py) {
+  const h = Math.min(FULL, Math.max(MIN_H, view.h * f));
+  if (h === view.h) return;
+  if (h >= FULL) { view.cx = 0; view.cy = 0; }
+  else { view.cx = px - (px - view.cx) * h / view.h; view.cy = py - (py - view.cy) * h / view.h; clampView(h); }
+  view.h = h; applyView();
+}
+function clampView(h = view.h) {
+  const lim = Math.max(0, FULL - h);
+  view.cx = Math.max(-lim, Math.min(lim, view.cx)); view.cy = Math.max(-lim, Math.min(lim, view.cy));
+}
+const toSvg = (cx, cy) => { const pt = svg.createSVGPoint(); pt.x = cx; pt.y = cy; return pt.matrixTransform(svg.getScreenCTM().inverse()); };
+svg.addEventListener('wheel', e => {
+  e.preventDefault();
+  const q = toSvg(e.clientX, e.clientY);
+  zoomAt(Math.exp(e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0015)), q.x, q.y);
+}, { passive: false });
+$('zoomIn').addEventListener('click', () => zoomAt(1 / 1.5, view.cx, view.cy));
+$('zoomOut').addEventListener('click', () => zoomAt(1.5, view.cx, view.cy));
+$('zoomReset').addEventListener('click', () => zoomAt(99, 0, 0));
+// Drag to pan while zoomed in. A drag does not pick a color.
+let drag = null, dragged = false;
+svg.addEventListener('pointerdown', e => {
+  dragged = false;
+  if (view.h >= FULL || e.button !== 0) return;
+  drag = { x: e.clientX, y: e.clientY, cx: view.cx, cy: view.cy, scale: 2 * view.h / svg.getBoundingClientRect().width, id: e.pointerId };
+});
+svg.addEventListener('pointermove', e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (!dragged && Math.hypot(dx, dy) < 5) return;
+  if (!dragged) { dragged = true; svg.setPointerCapture(e.pointerId); svg.parentElement.classList.add('panning'); }
+  view.cx = drag.cx - dx * drag.scale; view.cy = drag.cy - dy * drag.scale; clampView(); applyView();
+});
+const endDrag = () => { drag = null; svg.parentElement.classList.remove('panning'); };
+svg.addEventListener('pointerup', endDrag);
+svg.addEventListener('pointercancel', endDrag);
 function updateDots() {
   svg.querySelectorAll('.dot').forEach(el => {
     const p = mine.find(q => q.id === el.dataset.id);
@@ -527,7 +714,7 @@ function setTarget(lab, paint = null, source = 'wheel') {
   $('marker').style.transform = `translate(${x}px, ${y}px)`;
   $('tswatch').style.setProperty('--c', target.hex);
   $('tname').textContent = paint ? paint.name : target.hex.toUpperCase();
-  $('tmeta').textContent = `${describe(lab).text}. Wartość ${Math.round(tl * 100)}/100, nasycenie ${Math.round(tc / CMAX * 100)}%, odcień ${Math.round(th)}°`;
+  $('tmeta').textContent = `${describe(lab).text}. ${T('Wartość', 'Value')} ${Math.round(tl * 100)}/100, ${T('nasycenie', 'saturation')} ${Math.round(tc / CMAX * 100)}%, ${T('odcień', 'hue')} ${Math.round(th)}°`;
   $('tcolor').value = target.hex; $('thex').value = target.hex.toUpperCase();
   if (source !== 'slider') { L = tl; slider.value = Math.round(tl * 100); $('lval').textContent = Math.round(tl * 100); scheduleWheel(); }
   updateDots(); renderRecipes(); renderShopNear();
@@ -539,10 +726,10 @@ slider.addEventListener('input', () => {
   if (target) { const [, c, h] = lab2lch(target.lab); setTarget(lch2lab(L, clampToGamut(L, c, h), h), null, 'slider'); }
 });
 svg.addEventListener('click', e => {
+  if (dragged) { dragged = false; return; }
   const dot = e.target.closest('.dot');
   if (dot) { const p = mine.find(q => q.id === dot.dataset.id); setTarget(p.lab, p); return; }
-  const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
-  const q = pt.matrixTransform(svg.getScreenCTM().inverse());
+  const q = toSvg(e.clientX, e.clientY);
   const r = Math.hypot(q.x, q.y); if (r > 1.02) return;
   const H = (Math.atan2(-q.y, q.x) * 180 / Math.PI + 360) % 360;
   const C = clampToGamut(L, Math.min(r, 1) * CMAX, H);
@@ -562,13 +749,13 @@ function renderRecipes() {
   currentRecipes = recipes(target.lab, pool, 5);
   $('recipes').innerHTML = currentRecipes.map((r, i) => {
     const [q, cls] = quality(r.d);
-    return `<li><button class="recipe" data-i="${i}" aria-pressed="false"><span class="pair"><i style="--c:${target.hex}"></i><i style="--c:${linHex(r.lin)}"></i></span><span class="parts">${partsHtml(r.parts)}</span><span class="badge ${cls}" title="Różnica ΔE ${r.d.toFixed(1)}">${q}</span></button></li>`;
+    return `<li><button class="recipe" data-i="${i}" aria-pressed="false"><span class="pair"><i style="--c:${target.hex}"></i><i style="--c:${linHex(r.lin)}"></i></span><span class="parts">${partsHtml(r.parts)}</span><span class="badge ${cls}" title="${T('Różnica', 'Difference')} ΔE ${r.d.toFixed(1)}">${q}</span></button></li>`;
   }).join('');
   const best = currentRecipes[0];
   const maxC = Math.max(...pool.filter(p => Math.abs(p.lab[0] - target.lab[0]) < 0.2).map(p => p.lch[1]), 0);
-  let note = 'Lewa połówka próbki to cel, prawa to mieszanka.';
-  if (best.d >= 9 && lab2lch(target.lab)[1] > maxC * 1.05) note += ' Ten kolor jest bardziej nasycony niż Twoje farby o podobnej wartości. Mieszaniem go nie osiągniesz, potrzebna jest nowa farba.';
-  else if (best.d >= 9) note += ' Twoja kolekcja nie ma farb w tym rejonie koła. Sprawdź podpowiedzi ze sklepu niżej.';
+  let note = T('Lewa połówka próbki to cel, prawa to mieszanka.', 'The left half of each swatch is the target, the right half is the mix.');
+  if (best.d >= 9 && lab2lch(target.lab)[1] > maxC * 1.05) note += T(' Ten kolor jest bardziej nasycony niż Twoje farby o podobnej wartości. Mieszaniem go nie osiągniesz, potrzebna jest nowa farba.', ' This color is more saturated than your paints of a similar value. You cannot mix it, you need a new paint.');
+  else if (best.d >= 9) note += T(' Twoja kolekcja nie ma farb w tym rejonie koła. Sprawdź podpowiedzi ze sklepu niżej.', ' Your collection has no paints in this part of the wheel. See the store suggestions below.');
   $('recipeNote').textContent = note;
   selRecipe = null; resetWell();
 }
@@ -581,7 +768,7 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 function resetWell() {
   const w = $('mixwell'); w.querySelectorAll('.drop').forEach(d => d.remove());
   $('puddle').style.setProperty('--c', 'var(--well)');
-  $('mixcap').textContent = 'Kliknij przepis, żeby zobaczyć proporcje';
+  $('mixcap').textContent = T('Kliknij przepis, żeby zobaczyć proporcje', 'Click a recipe to see the proportions');
 }
 function playMix(r) {
   const w = $('mixwell'), puddle = $('puddle');
@@ -590,7 +777,7 @@ function playMix(r) {
   const W = w.clientWidth, step = Math.min(34, (W - 40) / drops.length);
   const x0 = W / 2 - step * (drops.length - 1) / 2;
   const mixed = linHex(r.lin);
-  $('mixcap').textContent = r.parts.length === 1 ? `${r.parts[0][0].name} prosto z butelki` : `${drops.length} ${pl(drops.length, 'kropla', 'krople', 'kropli')}: ` + r.parts.map(([p, n]) => `${n} × ${p.name}`).join(' + ');
+  $('mixcap').textContent = r.parts.length === 1 ? `${r.parts[0][0].name} ${T('prosto z butelki', 'straight from the pot')}` : `${drops.length} ${N(drops.length, ['kropla', 'krople', 'kropli'], ['drop', 'drops'])}: ` + r.parts.map(([p, n]) => `${n} × ${p.name}`).join(' + ');
   if (reduceMotion.matches) { puddle.style.setProperty('--c', mixed); return; }
   puddle.style.setProperty('--c', drops[0].hex);
   const els = drops.map((p, i) => {
@@ -599,7 +786,7 @@ function playMix(r) {
     d.style.transitionDelay = (i * 70) + 'ms';
     w.appendChild(d); return d;
   });
-  w.offsetWidth; // zatwierdź pozycję startową
+  w.offsetWidth; // commit the start position
   els.forEach((d, i) => { const dx = W / 2 - (x0 + i * step); d.style.transform = `translate(${dx}px, 52px) rotate(-45deg) scale(.55)`; d.style.opacity = '0'; d.style.transitionDelay = (i * 70) + 'ms, ' + (i * 70 + 300) + 'ms'; });
   setTimeout(() => puddle.style.setProperty('--c', mixed), drops.length * 70 + 280);
 }
@@ -607,16 +794,16 @@ function renderShopNear() {
   $('shopNear').innerHTML = nearest(target.lab, shop.filter(opaque), 4).map(([p, d]) => prow(p, 'ΔE ' + d.toFixed(1))).join('');
 }
 
-/* ---------- ZAKUPY ---------- */
+/* ---------- BEFORE YOU BUY ---------- */
 const allSearch = catalog.concat(extras);
 const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 $('q').addEventListener('input', e => {
   const v = e.target.value.trim();
-  if (/^#?[0-9a-f]{6}$/i.test(v)) { $('hits').innerHTML = ''; const lin = hexLin(v); judge({ id: 'hex', name: '#' + v.replace('#', '').toUpperCase(), brand: 'własny kolor', role: 'base', lin, lab: lin2lab(lin), hex: linHex(lin), owned: false, lch: lab2lch(lin2lab(lin)), grey: greyOf(lin2lab(lin)), desc: describe(lin2lab(lin)) }); return; }
+  if (/^#?[0-9a-f]{6}$/i.test(v)) { $('hits').innerHTML = ''; const lin = hexLin(v); judge({ id: 'hex', name: '#' + v.replace('#', '').toUpperCase(), brand: T('własny kolor', 'custom color'), role: 'base', lin, lab: lin2lab(lin), hex: linHex(lin), owned: false, lch: lab2lch(lin2lab(lin)), grey: greyOf(lin2lab(lin)), desc: describe(lin2lab(lin)) }); return; }
   if (v.length < 2) { $('hits').innerHTML = ''; return; }
   const n = norm(v);
   const hits = allSearch.filter(p => norm(p.name).includes(n)).sort((a, b) => norm(a.name).indexOf(n) - norm(b.name).indexOf(n)).slice(0, 8);
-  $('hits').innerHTML = hits.length ? hits.map(p => `<li><button data-id="${esc(p.id)}"><span class="sw" style="--c:${p.hex};--g:${p.grey};width:18px;height:18px"></span><span>${esc(p.name)} <span class="tag">${esc(p.brand)}, ${ROLE_PL[p.role] || p.role}</span></span><span class="tag">${p.owned ? 'masz' : ''}</span></button></li>`).join('') : '<li class="small muted">Nie ma takiej farby w katalogu. Spróbuj krótszego fragmentu nazwy albo wpisz kod hex.</li>';
+  $('hits').innerHTML = hits.length ? hits.map(p => `<li><button data-id="${esc(p.id)}"><span class="sw" style="--c:${p.hex};--g:${p.grey};width:18px;height:18px"></span><span>${esc(p.name)} <span class="tag">${esc(p.brand)}, ${ROLE_PL[p.role] || p.role}</span></span><span class="tag">${p.owned ? T('masz', 'owned') : ''}</span></button></li>`).join('') : `<li class="small muted">${T('Nie ma takiej farby w katalogu. Spróbuj krótszego fragmentu nazwy albo wpisz kod hex.', 'No such paint in the catalog. Try a shorter part of the name or type a hex code.')}</li>`;
 });
 $('hits').addEventListener('click', e => { const b = e.target.closest('button'); if (b) judge(allSearch.find(p => p.id === b.dataset.id)); });
 function judge(c) {
@@ -625,40 +812,148 @@ function judge(c) {
   let compare = mine.filter(p => metal ? p.role === 'metallic' : tech ? p.role === 'technical' : p.role !== 'metallic' && p.role !== 'technical');
   if (c.owned) compare = compare.filter(p => p.id !== c.id);
   const near = nearest(c.lab, compare, 3);
-  const mix = metal || tech ? null : recipes(c.lab, mixPool(false), 1)[0];
+  const mix = metal || tech ? null : recipes(c.lab, mixPool(false).filter(p => p.id !== c.id), 1)[0];
   const same = mine.filter(p => p.id !== c.id && p.desc.key === c.desc.key && opaque(p) === opaque(c));
   let v, cls, why;
-  if (c.owned) { v = 'Już ją masz'; cls = 'q-ok'; why = 'Ta farba jest w Twojej kolekcji.'; }
-  else if (near[0] && near[0][1] < 5) { v = 'Raczej nie kupuj'; cls = 'q-far'; why = `Masz prawie ten sam kolor: ${near[0][0].name} (różnica ${near[0][1].toFixed(1)}).`; }
-  else if (mix && mix.d < 5 && !transp) { v = 'Zmieszasz ją sam'; cls = 'q-meh'; why = 'Z Twoich farb wychodzi bardzo bliska mieszanka. Kup, jeśli będziesz używać tego koloru często, bo mieszanie za każdym razem tak samo jest trudne.'; }
-  else { v = 'Uzupełni kolekcję'; cls = 'q-ok'; why = 'Nie masz niczego podobnego i nie zmieszasz tego koloru z tego, co masz.'; }
+  if (c.owned) { v = T('Już ją masz', 'You already own it'); cls = 'q-ok'; why = T('Ta farba jest w Twojej kolekcji.', 'This paint is in your collection.'); }
+  else if (near[0] && near[0][1] < 5) { v = T('Raczej nie kupuj', 'Probably skip it'); cls = 'q-far'; why = T(`Masz prawie ten sam kolor: ${near[0][0].name} (różnica ${near[0][1].toFixed(1)}).`, `You have almost the same color: ${near[0][0].name} (difference ${near[0][1].toFixed(1)}).`); }
+  else if (mix && mix.d < 5 && !transp) { v = T('Zmieszasz ją sam', 'You can mix it'); cls = 'q-meh'; why = T('Z Twoich farb wychodzi bardzo bliska mieszanka. Kup, jeśli będziesz używać tego koloru często, bo mieszanie za każdym razem tak samo jest trudne.', 'Your paints give a very close mix. Buy it if you will use this color often, because mixing the same shade every time is hard.'); }
+  else { v = T('Uzupełni kolekcję', 'Fills a gap'); cls = 'q-ok'; why = T('Nie masz niczego podobnego i nie zmieszasz tego koloru z tego, co masz.', 'You have nothing similar and cannot mix this color from what you own.'); }
   let extra = '';
-  if (transp) extra = '<p class="small muted">To farba transparentna (wash, contrast). Porównuję sam kolor, ale ona działa inaczej: spływa we wgłębienia i barwi to, co pod spodem. Farba kryjąca jej nie zastąpi.</p>';
-  if (metal) extra = '<p class="small muted">To metalik, więc porównuję go tylko z Twoimi metalikami. Połysku nie da się zmieszać ze zwykłych farb.</p>';
+  if (transp) extra = `<p class="small muted">${T('To farba transparentna (wash, contrast). Porównuję sam kolor, ale ona działa inaczej: spływa we wgłębienia i barwi to, co pod spodem. Farba kryjąca jej nie zastąpi.', 'This is a transparent paint (wash, contrast). Only the color is compared, but it behaves differently: it flows into recesses and tints what is underneath. An opaque paint will not replace it.')}</p>`;
+  if (metal) extra = `<p class="small muted">${T('To metalik, więc porównuję go tylko z Twoimi metalikami. Połysku nie da się zmieszać ze zwykłych farb.', 'This is a metallic, so it is compared only with your metallics. You cannot mix metallic shine from regular paints.')}</p>`;
   box.innerHTML = `
     <div class="target"><div class="big" style="--c:${c.hex}"></div><div style="display:grid;gap:4px;min-width:0"><h3>${esc(c.name)}</h3><p class="small muted">${esc(c.brand)}, ${ROLE_PL[c.role] || c.role}</p><p class="small">${c.desc.text}</p></div></div>
     <div class="verdict ${cls}"><strong>${v}</strong><p>${esc(why)}</p></div>${extra}
-    <div style="display:grid;gap:6px"><h3>Najbliższe z Twoich</h3><ul class="plist">${near.map(([p, d]) => prow(p, 'ΔE ' + d.toFixed(1))).join('') || '<li class="small muted">Nie masz farb tego rodzaju.</li>'}</ul></div>
-    ${mix ? `<div style="display:grid;gap:6px"><h3>Najlepsza mieszanka</h3><div class="recipe" style="cursor:default"><span class="pair"><i style="--c:${c.hex}"></i><i style="--c:${linHex(mix.lin)}"></i></span><span class="parts">${partsHtml(mix.parts)}</span><span class="badge ${quality(mix.d)[1]}">${quality(mix.d)[0]}</span></div></div>` : ''}
-    <p class="small">${same.length ? `W grupie „${c.desc.text}” masz już ${same.length} ${pl(same.length, 'farbę', 'farby', 'farb')}: ${same.map(p => esc(p.name)).join(', ')}.` : `W grupie „${c.desc.text}” nie masz jeszcze żadnej farby.`}</p>`;
+    <div style="display:grid;gap:6px"><h3>${T('Najbliższe z Twoich', 'Closest of yours')}</h3><ul class="plist">${near.map(([p, d]) => prow(p, 'ΔE ' + d.toFixed(1))).join('') || `<li class="small muted">${T('Nie masz farb tego rodzaju.', 'You have no paints of this kind.')}</li>`}</ul></div>
+    ${mix ? `<div style="display:grid;gap:6px"><h3>${T('Najlepsza mieszanka', 'Best mix')}</h3><div class="recipe" style="cursor:default"><span class="pair"><i style="--c:${c.hex}"></i><i style="--c:${linHex(mix.lin)}"></i></span><span class="parts">${partsHtml(mix.parts)}</span><span class="badge ${quality(mix.d)[1]}">${quality(mix.d)[0]}</span></div></div>` : ''}
+    <p class="small">${same.length
+      ? T(`W grupie „${c.desc.text}” masz już ${same.length} ${N(same.length, ['farbę', 'farby', 'farb'], [])}: `, `In the “${c.desc.text}” group you already own ${same.length} ${N(same.length, [], ['paint', 'paints'])}: `) + same.map(p => esc(p.name)).join(', ') + '.'
+      : c.owned
+        ? T(`To Twoja jedyna farba w grupie „${c.desc.text}”.`, `This is your only paint in the “${c.desc.text}” group.`)
+        : T(`W grupie „${c.desc.text}” nie masz jeszcze żadnej farby.`, `You do not own any paint in the “${c.desc.text}” group yet.`)}</p>
+    ${eqHtml(c)}
+    ${c.owned || c.id === 'hex' ? '' : `<button class="btn" id="shopToggle" data-id="${esc(c.id)}"></button>`}`;
+  judged = c; syncShopButton();
 }
+let judged = null;
+
+/* Equivalents from other brands: the closest paint of the same kind, one per brand. */
+const brandOf = p => p.brand.split(',')[0].trim();
+const kindOf = p => p.role === 'metallic' ? 'metal' : p.role === 'technical' ? 'tech' : p.role === 'air' ? 'air' : (p.role === 'shade' || p.role === 'ink') ? 'wash' : TRANSPARENT.has(p.role) ? 'contrast' : 'opaque';
+function equivalents(c, n = 6) {
+  const k = kindOf(c), own = c.id === 'hex' ? null : brandOf(c), best = new Map();
+  for (const p of allSearch) {
+    if (p.id === c.id || kindOf(p) !== k || brandOf(p) === own) continue;
+    const d = dE(p.lab, c.lab), b = brandOf(p);
+    if (!best.has(b) || d < best.get(b)[1]) best.set(b, [p, d]);
+  }
+  return [...best.values()].sort((a, b) => a[1] - b[1]).slice(0, n);
+}
+function eqHtml(c) {
+  const eq = equivalents(c);
+  if (!eq.length) return '';
+  const transp = kindOf(c) === 'wash' || kindOf(c) === 'contrast';
+  return `<div style="display:grid;gap:6px"><h3>${T('Odpowiedniki w innych markach', 'Equivalents from other brands')}</h3>
+    <p class="small muted">${transp
+      ? T(`Tylko ${kindOf(c) === 'wash' ? 'washe i inki' : 'contrasty i speedpainty'}. Ich kolory w katalogu są zapisane różnie (z butelki albo na białym podkładzie), więc traktuj to jako wskazówkę.`, `Only ${kindOf(c) === 'wash' ? 'washes and inks' : 'contrasts and speedpaints'}. The catalog records their colors inconsistently (from the pot or over white primer), so treat this as a hint.`)
+      : T(`Ten sam rodzaj farby (${kindOf(c) === 'metal' ? 'metaliki' : kindOf(c) === 'air' ? 'farby do aerografu' : kindOf(c) === 'tech' ? 'technical' : 'farby kryjące'}), najbliższa kolorem z każdej marki. Kliknij, żeby ją ocenić.`, `Same kind of paint (${kindOf(c) === 'metal' ? 'metallics' : kindOf(c) === 'air' ? 'airbrush paints' : kindOf(c) === 'tech' ? 'technical' : 'opaque paints'}), the closest color from each brand. Click one to check it.`)}</p>
+    <ul class="eq">${eq.map(([p, d]) => { const [q, cls] = quality(d); return `<li><button data-id="${esc(p.id)}"><span class="sw" style="--c:${p.hex};--g:${p.grey};width:22px;height:22px"></span><span style="min-width:0"><span class="nm">${esc(p.name)}</span> <span class="tag">${esc(p.brand)}, ${ROLE_PL[p.role] || p.role}${p.owned ? T(', masz', ', owned') : ''}</span></span><span class="badge ${cls}" title="${T('Różnica', 'Difference')} ΔE ${d.toFixed(1)}">${q}</span></button></li>`; }).join('')}</ul></div>`;
+}
+$('buyResult').addEventListener('click', e => {
+  const eqb = e.target.closest('.eq button');
+  if (eqb) { const p = allSearch.find(x => x.id === eqb.dataset.id); if (p) { judge(p); $('buyResult').scrollIntoView({ block: 'start', behavior: reduceMotion.matches ? 'auto' : 'smooth' }); } return; }
+  if (e.target.closest('#shopToggle')) toggleShop(judged);
+});
+
+/* ---------- SHOPPING LIST ----------
+   Stored in the Artifact database (collection "shop"), so it is the same on phone and desktop.
+   Without a database (e.g. index.html opened from disk) the list lives in this browser only. */
+const docId = id => id.replace(/[^A-Za-z0-9_\-.~:@+]/g, '~');
+let shopItems = new Map(); // docId -> { id, name, brand, role, hex, bought, added }
+let shopStore = null; // { save(item), remove(key) }
+const shopNoteBase = $('shopNote').textContent;
+function localShopStore() {
+  const KEY = 'pb-shop';
+  try { for (const it of JSON.parse(localStorage.getItem(KEY) || '[]')) shopItems.set(docId(it.id), it); } catch {}
+  const persist = () => { try { localStorage.setItem(KEY, JSON.stringify([...shopItems.values()])); } catch {} };
+  return { save: async it => { shopItems.set(docId(it.id), it); persist(); renderShop(); }, remove: async k => { shopItems.delete(k); persist(); renderShop(); } };
+}
+async function initShop() {
+  let db = null;
+  try { db = window.claude && await window.claude.use('db'); } catch {}
+  if (!db) { shopStore = localShopStore(); renderShop(); return; }
+  const col = db.collection('shop');
+  let timer = setTimeout(() => { $('shopNote').textContent = T('Nie mogę jeszcze połączyć się z listą. Spróbuję dalej w tle.', 'Cannot reach the list yet. Still trying in the background.'); }, 10000);
+  col.onSnapshot(snap => {
+    if (!snap.metadata.fromCache && timer) { clearTimeout(timer); timer = null; $('shopNote').textContent = shopNoteBase; }
+    shopItems = new Map(snap.docs.map(d => [d.id, d.data()]));
+    renderShop();
+  }, err => {
+    if (timer) { clearTimeout(timer); timer = null; }
+    $('shopNote').textContent = T('Lista jest teraz niedostępna. Odśwież stronę później.', 'The list is unavailable right now. Reload the page later.');
+  });
+  const pending = new Map();
+  const write = (k, fn) => { const prev = pending.get(k) || Promise.resolve(); const next = prev.then(fn, fn).catch(err => { $('shopNote').textContent = err && err.code === 'quota_exceeded' ? T('Lista jest pełna. Usuń kupione farby.', 'The list is full. Remove bought paints.') : T('Nie udało się zapisać zmiany na liście.', 'Could not save the change to the list.'); }); pending.set(k, next); return next; };
+  shopStore = {
+    save: it => write(docId(it.id), () => col.doc(docId(it.id)).set(it)),
+    remove: k => write(k, () => col.doc(k).delete()),
+  };
+  renderShop();
+}
+function toggleShop(p) {
+  if (!p || !shopStore) return;
+  const k = docId(p.id);
+  if (shopItems.has(k)) shopStore.remove(k);
+  else shopStore.save({ id: p.id, name: p.name, brand: p.brand, role: p.role, hex: p.hex, bought: false, added: new Date().toISOString() });
+}
+function syncShopButton() {
+  const b = document.getElementById('shopToggle');
+  if (!b || !judged) return;
+  const on = shopItems.has(docId(judged.id));
+  b.textContent = on ? T('Na liście zakupów (usuń)', 'On the shopping list (remove)') : T('Dodaj do listy zakupów', 'Add to shopping list');
+  b.setAttribute('aria-pressed', on);
+  b.disabled = !shopStore;
+}
+function renderShop() {
+  const items = [...shopItems.values()].sort((a, b) => (a.bought - b.bought) || String(a.added).localeCompare(String(b.added)));
+  const open = items.filter(it => !it.bought).length;
+  $('shopCount').textContent = open ? `(${open})` : '';
+  $('clearBought').hidden = !items.some(it => it.bought);
+  $('shopList').innerHTML = items.length ? items.map(it => {
+    const p = allSearch.find(x => x.id === it.id);
+    const alts = p ? equivalents(p, 3).filter(([, d]) => d < 9).map(([q, d]) => `${esc(q.name)} (${esc(brandOf(q))}${q.owned ? T(', masz', ', owned') : ''})`).join(', ') : '';
+    return `<li class="${it.bought ? 'bought' : ''}"><span class="sw" style="--c:${esc(p ? p.hex : it.hex)};--g:${p ? p.grey : '#888'}"></span>
+      <span style="display:grid;gap:2px;min-width:0"><span><span class="nm">${esc(it.name)}</span> <span class="tag">${esc(it.brand)}, ${ROLE_PL[it.role] || esc(it.role)}</span></span>
+      ${alts ? `<span class="alts">${T('Zamienniki', 'Substitutes')}: ${alts}</span>` : ''}</span>
+      <span class="acts"><button class="btn quiet" data-act="bought" data-k="${esc(docId(it.id))}" aria-pressed="${!!it.bought}">${it.bought ? T('Kupione', 'Bought') : T('Oznacz jako kupione', 'Mark as bought')}</button><button class="btn quiet" data-act="remove" data-k="${esc(docId(it.id))}" aria-label="${T(`Usuń ${esc(it.name)} z listy`, `Remove ${esc(it.name)} from the list`)}">${T('Usuń', 'Remove')}</button></span></li>`;
+  }).join('') : `<li style="display:block" class="small muted">${T('Lista jest pusta.', 'The list is empty.')}</li>`;
+  syncShopButton();
+}
+$('shopList').addEventListener('click', e => {
+  const b = e.target.closest('button[data-act]'); if (!b || !shopStore) return;
+  const it = shopItems.get(b.dataset.k); if (!it) return;
+  if (b.dataset.act === 'remove') shopStore.remove(b.dataset.k);
+  else shopStore.save({ ...it, bought: !it.bought });
+});
+$('clearBought').addEventListener('click', () => { for (const [k, it] of shopItems) if (it.bought) shopStore && shopStore.remove(k); });
 function buyEmpty() {
-  $('buyResult').innerHTML = '<h3>Wynik pojawi się tutaj</h3><p class="muted small">Przykład: wpisz „Rhinox Hide”, jeśli zastanawiasz się nad ciemnym brązem.</p>';
+  $('buyResult').innerHTML = T('<h3>Wynik pojawi się tutaj</h3><p class="muted small">Przykład: wpisz „Rhinox Hide”, jeśli zastanawiasz się nad ciemnym brązem.</p>', '<h3>The result will appear here</h3><p class="muted small">For example, type “Rhinox Hide” if you are thinking about a dark brown.</p>');
 }
 
-/* ---------- SCHEMATY ---------- */
+/* ---------- SCHEMES ---------- */
 const HARM = {
-  mono: { name: 'Jednobarwny', off: [0, 0, 0], text: 'Jeden odcień w różnych wartościach. Najbezpieczniejszy na początek: wszystko pasuje, a figurkę budujesz kontrastem jasne–ciemne.' },
-  analog: { name: 'Sąsiedni', off: [0, -32, 32], text: 'Kolory leżące obok siebie na kole. Spokojny, naturalny efekt, jak jesienne liście albo rdza na metalu. Dobry na potwory i skórę.' },
-  compl: { name: 'Dopełniający', off: [0, 0, 180], text: 'Kolor główny i jego przeciwieństwo jako akcent. Najmocniejszy kontrast barwny: akcent dosłownie świeci na tle koloru głównego.' },
-  split: { name: 'Rozszczepione dopełnienie', off: [0, 150, 210], text: 'Zamiast dokładnego przeciwieństwa bierzesz jego dwóch sąsiadów. Kontrast nadal jest wyraźny, ale łatwiej go opanować niż czyste dopełnienie.' },
-  triad: { name: 'Triada', off: [0, 120, 240], text: 'Trzy kolory w równych odstępach. Dużo energii i barw, dlatego trzymaj się ściśle 60/30/10, inaczej zrobi się pstrokato.' },
+  mono: { name: T('Jednobarwny', 'Monochrome'), off: [0, 0, 0], text: T('Jeden odcień w różnych wartościach. Najbezpieczniejszy na początek: wszystko pasuje, a figurkę budujesz kontrastem jasne–ciemne.', 'One hue in several values. The safest start: everything matches, and you build the model with light–dark contrast.') },
+  analog: { name: T('Sąsiedni', 'Analogous'), off: [0, -32, 32], text: T('Kolory leżące obok siebie na kole. Spokojny, naturalny efekt, jak jesienne liście albo rdza na metalu. Dobry na potwory i skórę.', 'Colors that sit next to each other on the wheel. A calm, natural look, like autumn leaves or rust on metal. Good for monsters and skin.') },
+  compl: { name: T('Dopełniający', 'Complementary'), off: [0, 0, 180], text: T('Kolor główny i jego przeciwieństwo jako akcent. Najmocniejszy kontrast barwny: akcent dosłownie świeci na tle koloru głównego.', 'The main color with its opposite as the accent. The strongest color contrast: the accent literally glows against the main color.') },
+  split: { name: T('Rozszczepione dopełnienie', 'Split complementary'), off: [0, 150, 210], text: T('Zamiast dokładnego przeciwieństwa bierzesz jego dwóch sąsiadów. Kontrast nadal jest wyraźny, ale łatwiej go opanować niż czyste dopełnienie.', 'Instead of the exact opposite, you take its two neighbors. The contrast is still clear, but easier to control than a pure complement.') },
+  triad: { name: T('Triada', 'Triadic'), off: [0, 120, 240], text: T('Trzy kolory w równych odstępach. Dużo energii i barw, dlatego trzymaj się ściśle 60/30/10, inaczej zrobi się pstrokato.', 'Three colors spaced evenly around the wheel. Lots of energy and color, so stick strictly to 60/30/10 or it gets garish.') },
 };
 let harm = 'compl';
 $('harm').innerHTML = Object.entries(HARM).map(([k, h]) => `<button data-k="${k}" aria-pressed="${k === harm}">${h.name}</button>`).join('');
 $('harm').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; harm = b.dataset.k; $('harm').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); renderScheme(); });
 const baseChoices = mine.filter(p => opaque(p) && p.lch[1] > 0.035);
-$('baseSel').innerHTML = `<option value="__target">Kolor wybrany na kole</option>` + baseChoices.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+$('baseSel').innerHTML = `<option value="__target">${T('Kolor wybrany na kole', 'Color picked on the wheel')}</option>` + baseChoices.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
 $('baseSel').value = (baseChoices.find(p => p.name === 'Macragge Blue') || baseChoices[0]).id;
 $('baseSel').addEventListener('change', renderScheme);
 
@@ -673,13 +968,13 @@ function renderScheme() {
   const pool = mixPool(false);
   let base;
   const sel = $('baseSel').value;
-  if (sel === '__target') { const r = recipes(target.lab, pool, 1)[0]; base = { name: 'kolor z koła', lab: r.lab, lin: r.lin, ks: ksOf(r.lin), hex: linHex(r.lin), lch: lab2lch(r.lab) }; }
+  if (sel === '__target') { const r = recipes(target.lab, pool, 1)[0]; base = { name: T('kolor z koła', 'wheel color'), lab: r.lab, lin: r.lin, ks: ksOf(r.lin), hex: linHex(r.lin), lch: lab2lch(r.lab) }; }
   else base = mine.find(p => p.id === sel);
   $('harmText').innerHTML = `<b>${HARM[harm].name}.</b> ${HARM[harm].text}`;
-  const roles = ['Główny, 60%', 'Uzupełniający, 30%', 'Akcent, 10%'];
+  const roles = EN ? ['Main, 60%', 'Secondary, 30%', 'Accent, 10%'] : ['Główny, 60%', 'Uzupełniający, 30%', 'Akcent, 10%'];
   const tg = slotTargets(base);
   const picks = tg.map((t, i) => i === 0 && base.id ? { parts: [[base, 1]], lin: base.lin, lab: base.lab, d: 0 } : recipes(t, pool, 1)[0]);
-  $('slots').innerHTML = picks.map((r, i) => `<div class="slot"><span class="small muted">${roles[i]}</span><span class="pair"><i style="--c:${linHex(lab2lin(tg[i]))}"></i><i style="--c:${linHex(r.lin)}"></i></span><span class="parts small">${partsHtml(r.parts)}</span>${i && r.d >= 9 ? '<span class="small" style="color:var(--bad)">Nie masz farby w tym kierunku, to dobry kandydat na zakup.</span>' : ''}</div>`).join('');
+  $('slots').innerHTML = picks.map((r, i) => `<div class="slot"><span class="small muted">${roles[i]}</span><span class="pair"><i style="--c:${linHex(lab2lin(tg[i]))}"></i><i style="--c:${linHex(r.lin)}"></i></span><span class="parts small">${partsHtml(r.parts)}</span>${i && r.d >= 9 ? `<span class="small" style="color:var(--bad)">${T('Nie masz farby w tym kierunku, to dobry kandydat na zakup.', 'You have no paint in this direction. A good candidate to buy.')}</span>` : ''}</div>`).join('');
   const cols = picks.map(r => linHex(r.lin));
   $('ratio').innerHTML = `<i style="--c:${cols[0]};flex:6"></i><i style="--c:${cols[1]};flex:3"></i><i style="--c:${cols[2]};flex:1"></i>`;
   $('shield').innerHTML = `<path d="M100 6 L190 30 L190 110 C190 170 145 205 100 224 C55 205 10 170 10 110 L10 30 Z" fill="${cols[1]}" stroke="rgb(0 0 0 / .35)" stroke-width="2"/>
@@ -701,8 +996,8 @@ function renderLadders(base) {
   const l2 = [m3(base, 1, cool, 1, black, 1), m(base, 2, cool, 1), base.hex, m(base, 3, warm, 1), m(base, 1, warm, 1), m(warm, 3, white, 1)];
   $('lad1').innerHTML = l1.map(c => `<i style="--c:${c}"></i>`).join('');
   $('lad2').innerHTML = l2.map(c => `<i style="--c:${c}"></i>`).join('');
-  $('lad1t').textContent = `Cień: ${black.name}. Światło: ${white.name}.`;
-  $('lad2t').textContent = `Cień: ${cool.name}${cool !== black ? ' z odrobiną ' + black.name : ''}. Światło: ${warm.name}, blask: ${white.name}.`;
+  $('lad1t').textContent = `${T('Cień', 'Shadow')}: ${black.name}. ${T('Światło', 'Light')}: ${white.name}.`;
+  $('lad2t').textContent = `${T('Cień', 'Shadow')}: ${cool.name}${cool !== black ? T(' z odrobiną ', ' with a touch of ') + black.name : ''}. ${T('Światło', 'Light')}: ${warm.name}, ${T('blask', 'highlight')}: ${white.name}.`;
   sphere($('sph1'), l1); sphere($('sph2'), l2);
 }
 function sphere(cv, ladder) {
@@ -722,9 +1017,9 @@ function sphere(cv, ladder) {
   c.clearRect(0, 0, S, S); c.putImageData(img, 0, 0);
 }
 
-/* ---------- KOLEKCJA ---------- */
+/* ---------- COLLECTION ---------- */
 function renderCollection() {
-  // skala wartości: kropki ułożone w kolumnach, żeby się nie nakładały
+  // value scale: dots stacked in columns so they do not overlap
   const W = 1000, pad = 30, bins = {};
   let h = `<defs><linearGradient id="vg"><stop offset="0" stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient></defs>
     <rect x="${pad}" y="118" width="${W - 2 * pad}" height="10" rx="5" fill="url(#vg)" stroke="var(--line)"/>`;
@@ -733,7 +1028,7 @@ function renderCollection() {
     const x = pad + (W - 2 * pad) * p.lab[0];
     const b = Math.round(x / 22); bins[b] = (bins[b] || 0) + 1;
     const y = 104 - (bins[b] - 1) * 22;
-    h += `<circle class="vdot" cx="${x.toFixed(1)}" cy="${y}" r="9.5" fill="${p.hex}" data-g="${p.grey}" data-c="${p.hex}" stroke="rgb(0 0 0 / .3)"><title>${esc(p.name)}: wartość ${Math.round(p.lab[0] * 100)}</title></circle>`;
+    h += `<circle class="vdot" cx="${x.toFixed(1)}" cy="${y}" r="9.5" fill="${p.hex}" data-g="${p.grey}" data-c="${p.hex}" data-tip="${esc(p.id)}" stroke="rgb(0 0 0 / .3)"></circle>`;
   }
   $('vscale').innerHTML = h;
   const mid = mine.filter(p => opaque(p) && p.lab[0] >= 0.4 && p.lab[0] < 0.6).length;
@@ -743,12 +1038,16 @@ function renderCollection() {
     const a = chrom[i], b = chrom[j];
     if (Math.abs(a.lab[0] - b.lab[0]) < 0.03 && Math.abs(((a.lch[2] - b.lch[2] + 540) % 360) - 180) > 60) pairs.push([a, b]);
   }
-  $('valueLesson').innerHTML = `<b>Włącz widok bez koloru.</b> Farby o tej samej wartości stają się jednakowo szare.` +
-    (pairs.length ? ` U Ciebie np. <b>${esc(pairs[0][0].name)}</b> i <b>${esc(pairs[0][1].name)}</b>: różne kolory, prawie ta sama jasność. Położone obok siebie z daleka zleją się w jedną plamę.` : '') +
-    ` Średnich tonów (wartość 40–60) masz ${mid}. To z nich budujesz przejścia między cieniem a światłem.`;
+  $('valueLesson').innerHTML = EN
+    ? `<b>Switch on the view without color.</b> Paints with the same value turn the same grey.` +
+      (pairs.length ? ` In your collection, for example, <b>${esc(pairs[0][0].name)}</b> and <b>${esc(pairs[0][1].name)}</b>: different colors, almost the same lightness. Side by side they blur into one blob from a distance.` : '') +
+      ` You have ${mid} ${N(mid, [], ['midtone', 'midtones'])} (value 40–60). Those are what you build the transitions between shadow and light from.`
+    : `<b>Włącz widok bez koloru.</b> Farby o tej samej wartości stają się jednakowo szare.` +
+      (pairs.length ? ` U Ciebie np. <b>${esc(pairs[0][0].name)}</b> i <b>${esc(pairs[0][1].name)}</b>: różne kolory, prawie ta sama jasność. Położone obok siebie z daleka zleją się w jedną plamę.` : '') +
+      ` Średnich tonów (wartość 40–60) masz ${mid}. To z nich budujesz przejścia między cieniem a światłem.`;
 
   const op = mine.filter(p => opaque(p) && p.lch[1] >= 0.03);
-  const groupsDef = [...SECTORS.map(s => ({ key: s.key, name: s.name, mid: s.mid })), { key: 'braz', name: 'brąz', mid: 55 }, { key: 'kosc', name: 'kość / beż', mid: 85 }];
+  const groupsDef = [...SECTORS.map(s => ({ key: s.key, name: s.name, mid: s.mid })), { key: 'braz', name: T('brąz', 'brown'), mid: 55 }, { key: 'kosc', name: T('kość / beż', 'bone / beige'), mid: 85 }];
   const pool = mixPool(false);
   $('cover').innerHTML = groupsDef.map(g => {
     const ps = op.filter(p => p.desc.sector === g.key);
@@ -757,26 +1056,94 @@ function renderCollection() {
       const tl = g.key === 'braz' ? 0.42 : g.key === 'kosc' ? 0.82 : 0.6, tc = g.key === 'braz' ? 0.07 : g.key === 'kosc' ? 0.045 : 0.12;
       const t = lch2lab(tl, clampToGamut(tl, tc, g.mid), g.mid);
       const r = recipes(t, pool, 1)[0];
-      foot = r.d < 6 ? `<span class="small muted">Brak farby, ale zmieszasz: ${r.parts.map(([p, n]) => n + '×' + esc(p.name)).join(' + ')}</span>` : `<span class="small" style="color:var(--warn)">Brak i trudno zmieszać. Kandydat na zakup: ${esc(nearest(t, shop.filter(opaque), 1)[0][0].name)}</span>`;
+      foot = r.d < 6 ? `<span class="small muted">${T('Brak farby, ale zmieszasz', 'No paint, but you can mix it')}: ${r.parts.map(([p, n]) => n + '×' + esc(p.name)).join(' + ')}</span>` : `<span class="small" style="color:var(--warn)">${T('Brak i trudno zmieszać. Kandydat na zakup', 'Missing and hard to mix. Candidate to buy')}: ${esc(nearest(t, shop.filter(opaque), 1)[0][0].name)}</span>`;
     }
-    return `<div class="sector ${ps.length ? '' : 'empty'}"><b>${g.name}</b><span class="small muted">${ps.length} ${pl(ps.length, 'farba', 'farby', 'farb')}</span><div class="row">${ps.map(p => `<span class="sw" title="${esc(p.name)}" style="--c:${p.hex};--g:${p.grey};width:20px;height:20px"></span>`).join('')}</div>${foot}</div>`;
+    return `<div class="sector ${ps.length ? '' : 'empty'}"><b>${g.name}</b><span class="small muted">${ps.length} ${N(ps.length, ['farba', 'farby', 'farb'], ['paint', 'paints'])}</span><div class="row">${ps.map(p => `<span class="sw" data-tip="${esc(p.id)}" style="--c:${p.hex};--g:${p.grey};width:20px;height:20px"></span>`).join('')}</div>${foot}</div>`;
   }).join('');
 
-  const G = [
-    ['Kryjące kolorowe', mine.filter(p => opaque(p) && p.lch[1] >= 0.03)],
-    ['Czerń, biel, szarości', mine.filter(p => opaque(p) && p.lch[1] < 0.03)],
-    ['Washe i contrasty', mine.filter(p => TRANSPARENT.has(p.role))],
-    ['Metaliki i tekstury', mine.filter(p => p.role === 'metallic' || p.role === 'technical')],
-  ];
-  $('groups').innerHTML = G.filter(g => g[1].length).map(([t, ps]) => `<div style="display:grid;gap:6px;min-width:0"><h3>${t} <span class="muted small">${ps.length}</span></h3><ul class="plist">${ps.map(p => prow(p, p.hex.toUpperCase())).join('')}</ul></div>`).join('');
+  renderGroups();
 }
+
+/* "All paints": grouped by type or brand (remembered in the browser) */
+let groupBy = 'type';
+try { if (localStorage.getItem('pb-groupBy') === 'brand') groupBy = 'brand'; } catch {}
+const byName = (a, b) => a.name.localeCompare(b.name, 'pl');
+function renderGroups() {
+  let G;
+  if (groupBy === 'brand') {
+    const m = new Map();
+    for (const p of mine) {
+      const k = p.brand.split(',')[0].trim();
+      if (!m.has(k)) m.set(k, []);
+      m.get(k).push(p);
+    }
+    G = [...m.entries()].sort((a, b) => a[0].localeCompare(b[0], 'pl'))
+      .map(([k, ps]) => [k, ps.slice().sort((a, b) => a.brand.localeCompare(b.brand, 'pl') || byName(a, b))]);
+  } else {
+    G = [
+      [T('Kryjące kolorowe', 'Opaque colors'), mine.filter(p => opaque(p) && p.lch[1] >= 0.03)],
+      [T('Czerń, biel, szarości', 'Black, white and greys'), mine.filter(p => opaque(p) && p.lch[1] < 0.03)],
+      [T('Washe i contrasty', 'Washes and contrasts'), mine.filter(p => TRANSPARENT.has(p.role))],
+      [T('Metaliki i tekstury', 'Metallics and textures'), mine.filter(p => p.role === 'metallic' || p.role === 'technical')],
+    ];
+  }
+  $('groups').innerHTML = G.filter(g => g[1].length).map(([t, ps]) => `<div style="display:grid;gap:6px;min-width:0"><h3>${esc(t)} <span class="muted small">${ps.length}</span></h3><ul class="plist">${ps.map(p => prow(p, p.hex.toUpperCase())).join('')}</ul></div>`).join('');
+  $('groupBy').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === groupBy));
+}
+$('groupBy').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  groupBy = b.dataset.k;
+  try { localStorage.setItem('pb-groupBy', groupBy); } catch {}
+  renderGroups();
+});
 $('valuesOnly').addEventListener('change', e => {
   document.body.classList.toggle('values-only', e.target.checked);
   document.querySelectorAll('.vdot').forEach(c => c.setAttribute('fill', e.target.checked ? c.dataset.g : c.dataset.c));
 });
 
+/* ---------- paint tooltips (wheel dots, value scale, header, hue coverage) ---------- */
+{
+  const tip = $('tip');
+  let tipFor = null, hideTimer = 0;
+  const findPaint = id => mine.find(p => p.id === id) || allSearch.find(p => p.id === id);
+  function place(x, y) {
+    const r = tip.getBoundingClientRect(), pad = 8;
+    let left = x + 14, top = y + 16;
+    if (left + r.width > innerWidth - pad) left = x - r.width - 14;
+    if (top + r.height > innerHeight - pad) top = y - r.height - 12;
+    tip.style.transform = `translate(${Math.max(pad, left)}px, ${Math.max(pad, top)}px)`;
+  }
+  function show(el, x, y) {
+    const p = findPaint(el.dataset.tip); if (!p) return;
+    tipFor = el;
+    tip.innerHTML = `<b>${esc(p.name)}</b>${esc(p.brand)}, ${ROLE_PL[p.role] || p.role}<br>${p.desc.text}, ${T('wartość', 'value')} ${Math.round(p.lab[0] * 100)}`;
+    tip.classList.add('on'); place(x, y);
+  }
+  const hide = () => { tipFor = null; tip.classList.remove('on'); };
+  document.addEventListener('pointerover', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (!el || e.pointerType === 'touch') return;
+    clearTimeout(hideTimer); show(el, e.clientX, e.clientY);
+  });
+  document.addEventListener('pointermove', e => { if (tipFor && e.pointerType !== 'touch') place(e.clientX, e.clientY); });
+  document.addEventListener('pointerout', e => {
+    if (e.pointerType === 'touch' || !tipFor) return;
+    if (!e.relatedTarget || !tipFor.contains(e.relatedTarget)) hide();
+  });
+  // On touch screens the tooltip appears on tap and hides after a moment.
+  document.addEventListener('pointerdown', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (e.pointerType !== 'touch') return;
+    clearTimeout(hideTimer);
+    if (!el) { hide(); return; }
+    const r = el.getBoundingClientRect(); show(el, r.left + r.width / 2, r.top);
+    hideTimer = setTimeout(hide, 2500);
+  });
+  addEventListener('scroll', hide, { passive: true });
+}
+
 /* ---------- routing ---------- */
-const VIEWS = ['kolo', 'zakupy', 'schematy', 'kolekcja', 'podstawy'];
+const VIEWS = ['kolo', 'zakupy', 'schematy', 'kolekcja', 'lista', 'podstawy'];
 function route() {
   const v = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'kolo';
   VIEWS.forEach(k => { $('v-' + k).hidden = k !== v; });
@@ -793,5 +1160,6 @@ drawWheel();
 buyEmpty();
 renderCollection();
 route();
+initShop();
 })();
 </script>

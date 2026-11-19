@@ -7,6 +7,7 @@
 //   --catalog    <npm root -g>/minipainter/data/catalog
 //   --inventory  ~/.minipainting/inventory.json   (or $MINIPAINTER_INVENTORY)
 //   --extras     ./extras.json                    (optional, paints missing from the catalog)
+//   --overrides  ./overrides.json                 (optional, corrected colours for catalog paints)
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { homedir } from 'node:os';
@@ -44,6 +45,13 @@ const METALLIC = new Set([
   'canoptek-alloy', 'castellax-bronze', 'grey-knights-steel', 'necron-compound', 'skullcrusher-brass',
 ]);
 const ROLE_ORDER = ['metallic', 'technical', 'contrast', 'speedpaint', 'shade', 'ink', 'dry', 'air', 'layer', 'base'];
+
+// overrides.json (optional): corrected colours for catalog paints, { "colors": { "<catalog id>": "#rrggbb" } }.
+// sources/match-paint-vault.mjs generates it from paint-vault.com swatches.
+const overridesPath = resolve(arg('overrides') || join(here, 'overrides.json'));
+const overrides = existsSync(overridesPath) ? JSON.parse(readFileSync(overridesPath, 'utf8')).colors || {} : {};
+let overridden = 0;
+
 const brands = {};
 const catalog = [];
 for (const f of readdirSync(catalogDir).filter(f => f.endsWith('.json'))) {
@@ -52,7 +60,10 @@ for (const f of readdirSync(catalogDir).filter(f => f.endsWith('.json'))) {
   for (const p of d.paints) {
     let role = ROLE_ORDER.find(r => p.usage_roles.includes(r)) || 'base';
     if (METALLIC.has(p.id.split('/')[1]) || p.color_families.includes('metallic')) role = 'metallic';
-    catalog.push([p.id, p.name, p.provider, role, p.rgb.r, p.rgb.g, p.rgb.b]);
+    let { r, g, b } = p.rgb;
+    const o = overrides[p.id];
+    if (o && /^#[0-9a-f]{6}$/i.test(o)) { const n = parseInt(o.slice(1), 16); [r, g, b] = [n >> 16, (n >> 8) & 255, n & 255]; overridden++; }
+    catalog.push([p.id, p.name, p.provider, role, r, g, b]);
   }
 }
 
@@ -82,9 +93,9 @@ writeFileSync(join(here, 'data.js'), 'window.PALETA = ' + JSON.stringify(data) +
 // index.html = app.html wrapped in a full document, so it opens straight from disk.
 const app = readFileSync(join(here, 'app.html'), 'utf8');
 writeFileSync(join(here, 'index.html'),
-  '<!doctype html>\n<html lang="pl">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n' +
+  '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n' +
   app.replace(/(<\/style>)/, '$1\n</head>\n<body>') + '\n</body>\n</html>\n');
 
-console.log(`Catalog: ${catalog.length} paints (${catalogDir})`);
+console.log(`Catalog: ${catalog.length} paints (${catalogDir}), ${overridden} colours corrected from overrides.json`);
 console.log(`Owned: ${owned.length} from ${inventoryPath}, extra owned: ${extras.length}, extra in catalog: ${extraCatalog}`);
 console.log(`Open ${join(here, 'index.html')} in your browser.`);
