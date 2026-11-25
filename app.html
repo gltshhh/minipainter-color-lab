@@ -1213,7 +1213,9 @@ function renderChapters() {
     $('chapDetail').innerHTML = `<p class="muted">${T('Brak pliku chapters.json z barwami chapterów. Umieść go obok build.mjs i uruchom node build.mjs.', 'No chapters.json with chapter colors. Put it next to build.mjs and run node build.mjs.')}</p>`;
     return;
   }
-  $('chapNote').textContent = T(`${chapters.length} chapterów z ilustracją na wiki. Linię genetyczną odczytałem z opisu, więc u części jest nieznana.`, `${chapters.length} chapters with an illustration on the wiki. The gene-seed line is read from the description, so some are unknown.`);
+  const src = D.chaptersSource, srcUrl = src && src.urls && src.urls[0];
+  $('chapNote').innerHTML = T(`${chapters.length} chapterów z ilustracją na wiki. Kolory wyliczone z ilustracji, linia genetyczna i status odczytane z opisu, więc u części linia jest nieznana.`, `${chapters.length} chapters with an illustration on the wiki. Colors are sampled from the illustrations, the gene-seed line and status are read from the descriptions, so some lines are unknown.`)
+    + (srcUrl ? ` ${T('Źródło', 'Source')}: <a href="${esc(srcUrl)}" target="_blank" rel="noopener">${esc(src.name.split(':')[0])}</a>, ${src.license_url ? `<a href="${esc(src.license_url)}" target="_blank" rel="noopener">${esc(src.license)}</a>` : esc(src.license || '')}.` : '');
   renderChapList(); renderChapDetail();
 }
 if (!chapters.length) { $('schMode').hidden = true; schMode = 'harm'; } // without chapters.json there is only one kind of scheme

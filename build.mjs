@@ -88,13 +88,16 @@ if (existsSync(extrasPath)) {
   }
 }
 
-// chapters.json (optional): Space Marine chapter colours for the "Chapters" view in Schemes.
+// chapters.json: Space Marine chapter colours for the "Chapter colors" view in Schemes (shipped with the repo,
+// CC BY-SA 3.0, derived from the Warhammer 40k Wiki; regenerate with tools/chapters/).
 //   { "chapters": [["Ultramarines", "Ultramarines", "loyal", [["#2b4a8c", 61], ["#c9a64a", 9], ...]], ...] }
 //   fields: name, gene-seed line ("" = unknown), status (loyal | lost | renegade), colours with their share in %
 const chaptersPath = resolve(arg('chapters') || join(here, 'chapters.json'));
-const chapters = existsSync(chaptersPath) ? JSON.parse(readFileSync(chaptersPath, 'utf8')).chapters || [] : [];
+const chaptersFile = existsSync(chaptersPath) ? JSON.parse(readFileSync(chaptersPath, 'utf8')) : {};
+const chapters = chaptersFile.chapters || [];
+const chaptersSource = chaptersFile.source || null; // shown in the app as attribution (CC BY-SA)
 
-const data = { generated: new Date().toISOString().slice(0, 10), brands, owned, extras, catalog, chapters };
+const data = { generated: new Date().toISOString().slice(0, 10), brands, owned, extras, catalog, chapters, chaptersSource };
 writeFileSync(join(here, 'data.js'), 'window.PALETA = ' + JSON.stringify(data) + ';\n');
 
 // index.html = app.html wrapped in a full document, so it opens straight from disk.

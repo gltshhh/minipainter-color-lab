@@ -25,7 +25,7 @@ Along the way it explains the theory behind the answers: hue, value and saturati
 |---|---|
 | **Wheel & mixing** | Your paints on an OKLCH color wheel, with a value slider and zoom. Click any point and get up to five recipes from paints you own, such as "3 parts Macragge Blue + 1 part Corax White", with a target vs. result swatch, a closeness rating and an animated mixing well. Below that, the closest paints you could buy. |
 | **Before you buy** | Search any catalog paint or type a hex code. You get a verdict (already own it, probably skip it, you can mix it, fills a gap), your closest paints, the best mix from your collection, how many paints you already have in that color group, and the **closest equivalent from every other brand** (Citadel, Vallejo, Army Painter, AK Interactive and any extra ranges you add). One click puts it on the shopping list. |
-| **Schemes** | Pick a main color and a harmony (monochrome, analogous, complementary, split complementary, triadic). You get a 60/30/10 set from your own paints, a shield preview, and two shaded spheres that compare black-and-white shading with cool shadows and warm highlights. With an optional `chapters.json`, a second mode lists Space Marine chapters by gene-seed line, armor color or name: each chapter's armor, second color and details matched to your paints and the closest store paint, plus suggested extras that suit the scheme (metal, lenses, leather, parchment, wax seals, base, armor wash). |
+| **Schemes** | Pick a main color and a harmony (monochrome, analogous, complementary, split complementary, triadic). You get a 60/30/10 set from your own paints, a shield preview, and two shaded spheres that compare black-and-white shading with cool shadows and warm highlights. A second mode lists Space Marine chapters by gene-seed line, armor color or name: each chapter's armor, second color and details matched to your paints and the closest store paint, plus suggested extras that suit the scheme (metal, lenses, leather, parchment, wax seals, base, armor wash). |
 | **Collection** | A value scale of your paints with a grayscale toggle, hue coverage with the gaps you can or cannot fill by mixing, and the full list grouped by type or brand. |
 | **Shopping list** | Paints you plan to buy, each with substitutes from other brands in case the store does not stock that exact one. Synced between devices when the page runs as a claude.ai Artifact, stored in the browser otherwise. |
 | **Basics** | Short lessons on color, each linked to the tool where you can try it. |
@@ -87,17 +87,17 @@ Catalog colors are reference values and some are off. If you have better ones, p
 { "colors": { "citadel/mournfang-brown": "#5d2e1c" } }
 ```
 
-### Chapter colors (optional)
+### Chapter colors
 
-Put a `chapters.json` next to `build.mjs` (or pass `--chapters <file>`) and the Schemes tab gets a **Chapter colors** mode. Without the file the mode is hidden.
+The Schemes tab has a **Chapter colors** mode built from `chapters.json`, which ships with the repository: 269 Space Marine chapters with their gene-seed line, status and colors. You can group them by gene-seed line, armor color or name. For each chapter you get the armor, second color and details matched to your paints and to the closest store paint, plus suggested extras that fit the scheme.
 
-```json
-{ "chapters": [
-  ["Ultramarines", "Ultramarines", "loyal", [["#3b4a68", 70], ["#2e241d", 20], ["#abacb5", 9]]]
-] }
-```
+The data is derived from the [Pictorial List of Space Marine Chapters](https://warhammer40k.fandom.com/wiki/Pictorial_List_of_Space_Marine_Chapters_(A-L)) on the Warhammer 40k Wiki (Fandom), which is licensed [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). `chapters.json` is therefore also CC BY-SA 3.0, unlike the MIT code. No wiki text or images are copied:
 
-Each entry is the chapter name, its gene-seed line (one of the nine loyal First Founding legions, or `""` when unknown), its status (`loyal`, `lost` or `renegade`) and its colors, largest share first, with their share in percent. The first color is treated as the armor, the next clearly different one as the second color, and the most saturated of the rest as details. The file is in `.gitignore`: the author's copy was sampled from illustrations on a fan wiki, which is third-party material.
+- names come from the list tables,
+- gene-seed line and status are inferred from the summaries with keyword rules (the line stays unknown when the summary does not name one),
+- colors are sampled from each chapter's illustration: the background is removed by flood fill from the edges, pixels are clustered with k-means in OKLab, and shades of one hue are merged.
+
+Illustrations are darker and duller than paint, so treat the colors as a direction. `tools/chapters/` holds the scripts and explains how to regenerate the file. Use `--chapters <file>` to build with a different file.
 
 ## Keep it in sync with Claude Code
 
@@ -154,9 +154,11 @@ The hook runs only in Claude Code. If you change your inventory another way (the
 | `build.mjs` | reads minipainter's catalog and your inventory, writes `data.js`, wraps `app.html` into `index.html` |
 | `hooks/claude-code-sync.mjs` | Claude Code hook that rebuilds after inventory changes made through MCP |
 | `extras.example.json` | example of paints missing from the catalog |
+| `chapters.json` | Space Marine chapter colors (CC BY-SA 3.0, from the Warhammer 40k Wiki) |
+| `tools/chapters/` | scripts that build `chapters.json` from the wiki pages |
 | `docs/` | screenshots for this README |
 
-Your own data stays out of the repository: `data.js`, `index.html`, `extras.json`, `overrides.json` and `chapters.json` are in `.gitignore`.
+Your own data stays out of the repository: `data.js`, `index.html`, `extras.json` and `overrides.json` are in `.gitignore`.
 
 ## Accuracy
 
@@ -172,10 +174,10 @@ Issues and pull requests are welcome, especially:
 
 ## Credits
 
-Paint catalog and inventory: [minipainter](https://github.com/ArturSkowronski/minipainter) by Artur Skowroński (MIT). Color space: [OKLab](https://bottosson.github.io/posts/oklab/) by Björn Ottosson. Fonts: Archivo and Atkinson Hyperlegible from Google Fonts.
+Paint catalog and inventory: [minipainter](https://github.com/ArturSkowronski/minipainter) by Artur Skowroński (MIT). Color space: [OKLab](https://bottosson.github.io/posts/oklab/) by Björn Ottosson. Fonts: Archivo and Atkinson Hyperlegible from Google Fonts. Chapter data: derived from the [Warhammer 40k Wiki](https://warhammer40k.fandom.com/) (Fandom), CC BY-SA 3.0.
 
 This is an independent community project. It is not affiliated with minipainter, Games Workshop, Vallejo, The Army Painter or AK Interactive. Paint names are trademarks of their owners and are used only to identify the paints.
 
 ## License
 
-[MIT](LICENSE)
+Code: [MIT](LICENSE). `chapters.json`: [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/), derived from the Warhammer 40k Wiki (Fandom).
