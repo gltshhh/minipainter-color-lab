@@ -7,6 +7,8 @@ node_modules/
 
 # colours scraped from paint-vault.com and the overrides built from them (third-party data, kept local)
 overrides.json
+# chapter colours sampled from Fandom wiki illustrations (third-party, kept local)
+chapters.json
 sources/paint-vault-colors.json
 
 # local helper that matches the catalog against a scraped paint-vault.com dump; not part of the project

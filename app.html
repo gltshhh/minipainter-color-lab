@@ -213,6 +213,38 @@ footer { font-size: .85rem; color: var(--muted); max-width: 75ch; }
 .shop .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: end; }
 .shop .alts { font-size: .82rem; color: var(--muted); }
 .count { font-variant-numeric: tabular-nums; font-size: .8em; color: var(--brass); }
+
+/* chapter colours (inside Schemes) */
+.chapcols { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .chapcols { grid-template-columns: minmax(0, 1fr); } }
+.chapfilters { display: grid; gap: 10px; }
+.chapfilters input[type=text] { width: 100%; }
+.chaplist { display: grid; gap: 14px; max-height: min(70vh, 900px); overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
+@media (max-width: 860px) { .chaplist { max-height: 55vh; } }
+.chapgroup { display: grid; gap: 6px; }
+.chapgroup h3 { font-size: 1rem; display: flex; gap: 8px; align-items: baseline; }
+.chapgroup ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px; }
+.chap { width: 100%; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 8px; align-items: center; text-align: left; font: inherit; font-size: .88rem; line-height: 1.2;
+  color: inherit; background: var(--well); border: 1px solid transparent; border-radius: var(--r); padding: 4px 8px 4px 4px; cursor: pointer; }
+.chap:hover { border-color: var(--line); }
+.chap[aria-pressed="true"] { border-color: var(--brass); box-shadow: inset 0 0 0 1px var(--brass); font-weight: 700; }
+.chap svg { width: 30px; height: 28px; display: block; }
+.chaphead { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 16px; align-items: center; }
+.chaphead svg { width: 120px; height: 110px; display: block; }
+@media (max-width: 420px) { .chaphead { grid-template-columns: 84px minmax(0, 1fr); } .chaphead svg { width: 84px; height: 78px; } }
+.chaphead h2 { font-size: 1.9rem; }
+.illus { display: flex; height: 22px; border-radius: 4px; overflow: hidden; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .2); }
+.illus i { background: var(--c); }
+.crow { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: start; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.crow:last-child { border-bottom: 0; }
+.crow .big { width: 44px; height: 44px; border-radius: var(--r); background: var(--c); box-shadow: inset 0 0 0 1px rgb(0 0 0 / .2); }
+.crow .what { display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline; }
+.crow .what b { font-family: var(--display); font-stretch: 85%; font-size: 1.02rem; }
+.crow .use { display: grid; gap: 4px; margin-top: 4px; }
+.crow .use > span { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.linkbtn { font: inherit; color: var(--ink); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-decoration-color: var(--brass); text-underline-offset: 3px; }
+.chapcols[hidden] { display: none; }
+.tip-v { font-size: .9rem; padding: 10px 12px; border-radius: var(--r); border: 1px solid var(--warn); }
 </style>
 
 <div class="wrap" id="app">
@@ -302,6 +334,28 @@ footer { font-size: .85rem; color: var(--muted); max-width: 75ch; }
 
   <!-- SCHEMES -->
   <section class="view" id="v-schematy" hidden>
+    <div class="seg" id="schMode" role="group" aria-label="Rodzaj schematu" data-i-aria="schMode">
+      <button data-k="harm" aria-pressed="true" data-i="mode.harm">Harmonie z koła barw</button>
+      <button data-k="chap" aria-pressed="false" data-i="mode.chap">Barwy chapterów</button>
+    </div>
+    <div class="chapcols" id="sch-chap" hidden>
+      <div class="panel">
+        <h2 data-i="chap.h">Chaptery Space Marines</h2>
+        <div class="chapfilters">
+          <input type="text" id="chapQ" placeholder="Szukaj, np. Crimson Fists" aria-label="Szukaj chaptera" data-i-ph="chapQ.ph" data-i-aria="chapQ" autocomplete="off" spellcheck="false">
+          <div class="seg" id="chapGroup" role="group" aria-label="Grupuj chaptery" data-i-aria="chapGroup">
+            <button data-k="line" aria-pressed="true" data-i="cg.line">Linia genetyczna</button>
+            <button data-k="color" aria-pressed="false" data-i="cg.color">Kolor pancerza</button>
+            <button data-k="az" aria-pressed="false">A–Z</button>
+          </div>
+          <div class="seg" id="chapStatus" role="group" aria-label="Status chaptera" data-i-aria="chapStatus"></div>
+        </div>
+        <div class="chaplist" id="chapList"></div>
+        <p class="small muted" id="chapNote"></p>
+      </div>
+      <div class="panel" id="chapDetail"></div>
+    </div>
+    <div id="sch-harm" style="display:grid;gap:20px">
     <div class="panel">
       <h2 data-i="sch.h">Zestaw kolorów do modelu</h2>
       <div class="picker">
@@ -327,6 +381,7 @@ footer { font-size: .85rem; color: var(--muted); max-width: 75ch; }
         </div>
         <p class="lesson" data-i="lesson.sph"><b>Porównaj kule.</b> Czerń i biel tylko przyciemniają i rozbielają, więc kolor szarzeje. Cień przełamany chłodną barwą i światło ocieplone kością dają więcej życia. Tak malują ludzie, którzy wygrywają konkursy.</p>
       </div>
+    </div>
     </div>
   </section>
 
@@ -416,7 +471,10 @@ const EN_UI = {
   'buy.h': 'Is this paint worth buying?',
   'buy.p': 'Type the name of a catalog paint or a hex code. You will see whether you already own something similar and whether you can mix the color yourself.',
   'q.ph': 'e.g. Rhinox Hide or #4a3020', 'q': 'Search for a paint',
-  'sch.h': 'A color set for your model', 'sch.base': 'Main color', 'harm': 'Harmony',
+  'schMode': 'Kind of scheme', 'mode.harm': 'Harmonies from the color wheel', 'mode.chap': 'Chapter colors',
+  'chap.h': 'Space Marine chapters', 'chapQ.ph': 'Search, e.g. Crimson Fists', 'chapQ': 'Search for a chapter',
+  'chapGroup': 'Group chapters', 'cg.line': 'Gene-seed line', 'cg.color': 'Armor color', 'chapStatus': 'Chapter status',
+  'sch.h': 'A color set for your model','sch.base': 'Main color', 'harm': 'Harmony',
   'ratio.h': '60 / 30 / 10 proportions', 'shield': 'Shield preview in the colors of the set',
   'lesson.6030': '<b>60 / 30 / 10:</b> one color rules (armor, cloak), the second supports it (skin, straps), the third is the accent (lenses, gems, markings). The accent works because there is so little of it.',
   'sh.h': 'Shadows and highlights of the main color',
@@ -1017,6 +1075,181 @@ function sphere(cv, ladder) {
   c.clearRect(0, 0, S, S); c.putImageData(img, 0, 0);
 }
 
+/* ---------- CHAPTER COLORS (Schemes, second mode) ----------
+   D.chapters: [name, gene-seed line, status, [[hex, share %], ...]] from chapters.json. The colors are sampled from
+   wiki illustrations, so they are darker and duller than paint; every color is matched to your paints and the store. */
+const LINES = ['Ultramarines', 'Dark Angels', 'Blood Angels', 'Space Wolves', 'Imperial Fists', 'White Scars', 'Raven Guard', 'Iron Hands', 'Salamanders'];
+const STATUS = { loyal: T('lojalni', 'loyal'), lost: T('utraceni lub zniszczeni', 'lost or destroyed'), renegade: T('renegaci', 'renegades') };
+const STATUS1 = { loyal: T('lojalny', 'loyal'), lost: T('utracony lub zniszczony', 'lost or destroyed'), renegade: T('renegat', 'renegade') };
+const COLOR_GROUPS = [
+  ['czern', T('Czerń', 'Black')], ['szarosc', T('Biel, srebro i szarość', 'White, silver and grey')], ['braz', T('Brąz', 'Brown')], ['kosc', T('Kość i beż', 'Bone and beige')],
+  ...SECTORS.map(s => [s.key, s.name[0].toUpperCase() + s.name.slice(1)]),
+];
+// Illustrations are dull, so dark colors keep their hue group at a lower chroma than describe() needs (Dark Angels green).
+const colorGroupOf = lab => {
+  const [l, c, h] = lab2lch(lab);
+  if (c < 0.018 || (c < 0.03 && l > 0.45)) return l < 0.36 ? 'czern' : 'szarosc';
+  if (h >= 22 && h < 95 && c < 0.14 && l < 0.6 && (h >= 40 || c < 0.08)) return 'braz'; // a dark, fairly saturated red stays red
+  if (h >= 55 && h < 112 && c < 0.09 && l >= 0.6) return 'kosc';
+  return sectorOf(h).key;
+};
+// Describe a chapter color by its group, so a dull dark green reads as green, not grey.
+function chapDesc(lab) {
+  const d = describe(lab), g = colorGroupOf(lab);
+  if (g === 'czern' || g === 'szarosc' || d.sector === g) return d.text;
+  if (g === 'braz' || g === 'kosc') return d.text.replace(/szarość|grey/, g === 'braz' ? T('brąz', 'brown') : T('kość', 'bone'));
+  const s = SECTORS.find(x => x.key === g), vb = valBucket(lab[0]), muted = lab2lch(lab)[1] < 0.07;
+  return VAL[s.g][vb] + (muted ? (EN ? ' muted' : s.g === 'f' ? ' przygaszona' : ' przygaszony') : '') + ' ' + s.name;
+}
+const chapters = (D.chapters || []).map(([name, line, status, cols]) => {
+  const cs = cols.map(([hex, pct]) => { const lab = lin2lab(hexLin(hex)); return { hex, pct, lab, lch: lab2lch(lab) }; });
+  const armor = cs[0], rest = cs.slice(1).filter(c => dE(c.lab, armor.lab) > 8);
+  const second = rest[0] || null, others = rest.slice(1);
+  const detail = others.length ? others.reduce((a, b) => b.lch[1] > a.lch[1] ? b : a) : null;
+  return { name, line, status, cs, armor, second, detail, group: colorGroupOf(armor.lab), key: norm(name) };
+});
+const pauldron = (a, b, c, m) => `<svg viewBox="0 0 48 44" aria-hidden="true"><path d="M2 41 C2 15 13 2 24 2 C35 2 46 15 46 41 Z" fill="${b}" stroke="rgb(0 0 0 / .4)" stroke-width="1"/><path d="M7.5 37 C7.5 18 16 8 24 8 C32 8 40.5 18 40.5 37 Z" fill="${a}"/><circle cx="24" cy="23" r="6.5" fill="${c}" stroke="rgb(0 0 0 / .3)" stroke-width=".8"/>${m ? `<circle cx="9" cy="38" r="1.7" fill="${m}"/><circle cx="39" cy="38" r="1.7" fill="${m}"/><circle cx="24" cy="5.2" r="1.7" fill="${m}"/>` : ''}</svg>`;
+const chapPauldron = (ch, m) => pauldron(ch.armor.hex, (ch.second || ch.armor).hex, (ch.detail || ch.second || ch.armor).hex, m);
+
+let chapGroup = 'line', chapStatus = 'all', chapSel = null, schMode = 'harm';
+try {
+  const g = localStorage.getItem('pb-chapGroup'); if (['line', 'color', 'az'].includes(g)) chapGroup = g;
+  if (localStorage.getItem('pb-schMode') === 'chap') schMode = 'chap';
+  chapSel = chapters.find(c => c.name === localStorage.getItem('pb-chap')) || null;
+} catch {}
+if (!chapSel) chapSel = chapters.find(c => c.name === 'Ultramarines') || chapters[0] || null;
+
+{
+  const cnt = k => chapters.filter(c => k === 'all' || c.status === k).length;
+  $('chapStatus').innerHTML = [['all', T('wszyscy', 'all')], ...Object.entries(STATUS)].map(([k, n]) => `<button data-k="${k}" aria-pressed="${k === chapStatus}">${n} <span class="muted num">${cnt(k)}</span></button>`).join('');
+}
+function renderChapList() {
+  const q = norm($('chapQ').value.trim());
+  const list = chapters.filter(c => (chapStatus === 'all' || c.status === chapStatus) && (!q || c.key.includes(q)));
+  let groups;
+  if (chapGroup === 'line') groups = [...LINES.map(l => [l, l]), ['', T('Linia nieznana', 'Unknown line')]].map(([k, n]) => [n, list.filter(c => c.line === k)]);
+  else if (chapGroup === 'color') groups = COLOR_GROUPS.map(([k, n]) => [n, list.filter(c => c.group === k)]);
+  else groups = [[T('Wszystkie', 'All'), list]];
+  const item = c => `<li><button class="chap" data-n="${esc(c.name)}" aria-pressed="${c === chapSel}">${chapPauldron(c)}<span>${esc(c.name)}</span></button></li>`;
+  $('chapList').innerHTML = groups.filter(g => g[1].length).map(([n, cs]) =>
+    `<div class="chapgroup"><h3>${esc(n)} <span class="muted small num">${cs.length}</span></h3><ul>${cs.sort(byName).map(item).join('')}</ul></div>`).join('')
+    || `<p class="small muted">${T('Nic nie pasuje do wyszukiwania.', 'Nothing matches the search.')}</p>`;
+  $('chapGroup').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === chapGroup));
+  $('chapStatus').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === chapStatus));
+}
+
+// What to paint each color with: your paint or mix first, the store when you have nothing close.
+const isMetal = p => p.role === 'metallic', isWash = p => p.role === 'shade' || p.role === 'ink';
+const buyLink = (p, d) => `<span class="small">${T('W sklepie', 'In the store')}: <span class="dotc" style="--c:${p.hex};--g:${p.grey}"></span> <button class="linkbtn" data-buy="${esc(p.id)}">${esc(p.name)}</button> <span class="tag">${esc(p.brand)}, ΔE ${d.toFixed(1)}</span></span>`;
+function matchHtml(lab, kind, alwaysBuy = false) {
+  if (kind === 'opaque') {
+    const r = recipes(lab, mixPool(false), 1)[0], [q, cls] = quality(r.d);
+    const buy = alwaysBuy || r.d >= 5 ? nearest(lab, shop.filter(opaque), 1)[0] : null;
+    return `<span><span class="small muted">${T('Z Twoich', 'From yours')}:</span> <span class="parts small">${partsHtml(r.parts)}</span> <span class="badge ${cls}" title="ΔE ${r.d.toFixed(1)}">${q}</span></span>${buy ? buyLink(...buy) : ''}`;
+  }
+  const f = kind === 'metal' ? isMetal : isWash;
+  const own = nearest(lab, mine.filter(f), 1)[0], buy = nearest(lab, shop.filter(f), 1)[0];
+  const ownHtml = own ? `<span><span class="small muted">${T('Z Twoich', 'From yours')}:</span> <span class="part small"><span class="dotc" style="--c:${own[0].hex};--g:${own[0].grey}"></span>${esc(own[0].name)}</span> <span class="badge ${quality(own[1])[1]}" title="ΔE ${own[1].toFixed(1)}">${quality(own[1])[0]}</span></span>`
+    : `<span class="small muted">${kind === 'metal' ? T('Nie masz metalików.', 'You own no metallics.') : T('Nie masz washy.', 'You own no washes.')}</span>`;
+  return ownHtml + (buy && (!own || own[1] >= 5) ? buyLink(...buy) : '');
+}
+const crow = (hex, title, sub, why, inner) => `<div class="crow"><span class="big" style="--c:${hex}"></span><div style="min-width:0"><div class="what"><b>${title}</b>${sub ? `<span class="tag">${sub}</span>` : ''}</div>${why ? `<p class="small muted">${why}</p>` : ''}<div class="use">${inner}</div></div></div>`;
+const mkLab = (l, c, h) => { h = (h + 360) % 360; return lch2lab(l, clampToGamut(l, c, h), h); };
+
+// Extra colors that suit the scheme, chosen from where the armor sits on the wheel.
+function suggestions(ch) {
+  const [aL, aC, aH] = ch.armor.lch, g = ch.group, neutral = g === 'czern' || g === 'szarosc';
+  const warm = ['czerwien', 'pomarancz', 'roz', 'braz'].includes(g), light = ['zolc', 'kosc'].includes(g) || (neutral && aL > 0.72);
+  const out = [];
+  if (light) out.push({ kind: 'metal', lab: lin2lab(hexLin('#a7abb0')), t: T('Metal: srebro', 'Metal: silver'), why: T('Na jasnym, żółtawym pancerzu złoto ginie. Srebro i stal odcinają się od niego.', 'Gold disappears on light, yellowish armor. Silver and steel stand out from it.') });
+  else out.push({ kind: 'metal', lab: lin2lab(hexLin('#b48d3c')), t: T('Metal: złoto', 'Metal: gold'), why: T('Ciepłe złoto na lamówki, orły i aquile. Dobrze kontrastuje z ciemnym lub chłodnym pancerzem.', 'Warm gold for trims, eagles and aquilas. It contrasts well with dark or cool armor.') });
+  let lens, lensWhy;
+  // painter's complements (red–green, blue–orange, yellow–violet), not the exact opposite on the OKLCH wheel
+  const COMP = { czerwien: 145, pomarancz: 250, zolc: 300, zielen: 27, turkus: 35, niebieski: 55, fiolet: 95, roz: 140, braz: 240, kosc: 260 };
+  if (!neutral) { lens = mkLab(0.6, 0.17, COMP[g]); lensWhy = T('Dopełnienie koloru pancerza. Mała plamka przeciwnej barwy świeci najmocniej.', 'The complement of the armor color. A small spot of the opposite hue glows the most.'); }
+  else if (ch.detail && ch.detail.lch[1] > 0.06 && sectorOf(ch.detail.lch[2]).key === 'czerwien') { lens = mkLab(0.68, 0.17, 145); lensWhy = T('Pancerz jest neutralny, a czerwień już jest w detalach, więc soczewki w zieleni.', 'The armor is neutral and red is already in the details, so green lenses.'); }
+  else { lens = mkLab(0.55, 0.18, 28); lensWhy = T('Pancerz jest neutralny, więc akcent może być dowolny. Czerwone soczewki to klasyka.', 'The armor is neutral, so any accent works. Red lenses are the classic.'); }
+  out.push({ kind: 'opaque', lab: lens, t: T('Soczewki i klejnoty', 'Lenses and gems'), why: lensWhy });
+  if (warm) out.push({ kind: 'opaque', lab: mkLab(0.28, 0.015, 250), t: T('Pasy, kabury, uchwyty', 'Straps, holsters, grips'), why: T('Brąz zlałby się z ciepłym pancerzem, więc skórę maluj ciemną, chłodną szarością.', 'Brown would merge with warm armor, so paint leather a dark, cool grey.') });
+  else out.push({ kind: 'opaque', lab: mkLab(0.37, 0.065, 52), t: T('Pasy, kabury, uchwyty', 'Straps, holsters, grips'), why: T('Ciepły brąz skóry ożywia chłodny lub neutralny pancerz.', 'Warm leather brown brings cool or neutral armor to life.') });
+  out.push({ kind: 'opaque', lab: mkLab(0.86, 0.04, 88), t: T('Pergamin i zwoje', 'Parchment and scrolls'), why: T('Pieczęcie czystości. Kość zamiast bieli wygląda naturalniej.', 'Purity seals. Bone looks more natural than white.') });
+  if (g !== 'czerwien') out.push({ kind: 'opaque', lab: mkLab(0.4, 0.15, 24), t: T('Woskowe pieczęcie', 'Wax seals'), why: T('Ciemna czerwień wosku przy pergaminie.', 'Dark red wax next to the parchment.') });
+  let base, baseWhy;
+  if (warm) { base = mkLab(0.55, 0.012, 250); baseWhy = T('Szary popiół nie konkuruje z ciepłym pancerzem.', 'Grey ash does not compete with warm armor.'); }
+  else if (g === 'czern') { base = mkLab(0.5, 0.08, 55); baseWhy = T('Rdzawa ziemia odcina czarny pancerz od podstawki.', 'Rusty earth separates black armor from the base.'); }
+  else if (light || g === 'szarosc') { base = mkLab(0.33, 0.035, 55); baseWhy = T('Ciemna ziemia odcina jasny pancerz od podstawki.', 'Dark earth separates light armor from the base.'); }
+  else { base = mkLab(0.62, 0.06, 75); baseWhy = T('Ciepły piasek leży naprzeciw chłodnego pancerza na kole, więc model się odcina.', 'Warm sand sits opposite cool armor on the wheel, so the model stands out.'); }
+  out.push({ kind: 'opaque', lab: base, t: T('Podstawka', 'Base'), why: baseWhy });
+  out.push({ kind: 'wash', lab: mkLab(aL * 0.55, aC * 0.8, aH), t: T('Wash do pancerza', 'Armor wash'), why: T('Wash w odcieniu pancerza pogłębia wgłębienia, nie szarzejąc koloru.', 'A wash in the armor hue deepens recesses without greying the color.') });
+  return out;
+}
+function renderChapDetail() {
+  const box = $('chapDetail'), ch = chapSel;
+  if (!ch) { box.innerHTML = `<p class="muted">${T('Wybierz chapter z listy.', 'Pick a chapter from the list.')}</p>`; return; }
+  const sug = suggestions(ch);
+  const metal = sug[0], metalOwn = nearest(metal.lab, mine.filter(isMetal), 1)[0];
+  const roles = [[ch.armor, T('Pancerz', 'Armor'), '60%'], [ch.second, T('Drugi kolor', 'Second color'), '30%'], [ch.detail, T('Detale', 'Details'), '10%']].filter(r => r[0]);
+  const url = 'https://warhammer40k.fandom.com/wiki/' + encodeURIComponent(ch.name.replace(/ /g, '_'));
+  let tip = '';
+  if (ch.second && Math.abs(ch.armor.lab[0] - ch.second.lab[0]) < 0.1)
+    tip = `<p class="tip-v">${T('<b>Pancerz i drugi kolor mają prawie tę samą wartość.</b> Z daleka się zleją. Rozjaśnij jeden z nich albo obrysuj granicę ciemnym washem.', '<b>The armor and the second color have almost the same value.</b> From a distance they will merge. Lighten one of them or line the border with a dark wash.')}</p>`;
+  box.innerHTML = `
+    <div class="chaphead">${chapPauldron(ch, linHex((metalOwn ? metalOwn[0] : { lin: lab2lin(metal.lab) }).lin))}
+      <div style="display:grid;gap:6px;min-width:0"><h2>${esc(ch.name)}</h2>
+        <p class="small muted">${ch.line ? T('Linia', 'Line') + ': ' + esc(ch.line) : T('Linia nieznana', 'Unknown line')}, ${STATUS1[ch.status]}. <a href="${url}" target="_blank" rel="noopener">${T('Opis na wiki', 'Wiki entry')}</a></p>
+        <div class="illus" title="${T('Kolory z ilustracji i ich udział', 'Colors from the illustration and their share')}">${ch.cs.map(c => `<i style="--c:${c.hex};flex:${c.pct}"></i>`).join('')}</div>
+      </div></div>
+    <div style="display:grid;gap:2px"><h3>${T('Barwy chaptera', 'Chapter colors')}</h3>
+      ${roles.map(([c, n, share]) => crow(c.hex, n, `${share} · ${chapDesc(c.lab)}`, '', matchHtml(c.lab, 'opaque', true))).join('')}</div>
+    ${tip}
+    <div style="display:grid;gap:2px"><h3>${T('Sugerowane dodatki', 'Suggested extras')}</h3>
+      ${sug.map(s => crow(linHex(lab2lin(s.lab)), s.t, s.kind === 'metal' ? T('metalik', 'metallic') : s.kind === 'wash' ? 'wash' : describe(s.lab).text, s.why, matchHtml(s.lab, s.kind))).join('')}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px"><button class="btn" id="chapLadder">${T('Cienie i światła pancerza', 'Shadows and highlights of the armor')}</button><button class="btn quiet" id="chapWheel">${T('Pokaż pancerz na kole', 'Show the armor on the wheel')}</button></div>
+    <p class="small muted">${T('Kolory pochodzą z ilustracji na wiki, więc są ciemniejsze i bardziej zgaszone niż farba. Przy pancerzu bliżej będzie jaśniejszy odcień tej samej barwy.', 'The colors come from wiki illustrations, so they are darker and duller than paint. For the armor, a lighter shade of the same hue will be closer.')}</p>`;
+}
+function renderChapters() {
+  if (!chapters.length) {
+    $('chapList').innerHTML = '';
+    $('chapDetail').innerHTML = `<p class="muted">${T('Brak pliku chapters.json z barwami chapterów. Umieść go obok build.mjs i uruchom node build.mjs.', 'No chapters.json with chapter colors. Put it next to build.mjs and run node build.mjs.')}</p>`;
+    return;
+  }
+  $('chapNote').textContent = T(`${chapters.length} chapterów z ilustracją na wiki. Linię genetyczną odczytałem z opisu, więc u części jest nieznana.`, `${chapters.length} chapters with an illustration on the wiki. The gene-seed line is read from the description, so some are unknown.`);
+  renderChapList(); renderChapDetail();
+}
+if (!chapters.length) { $('schMode').hidden = true; schMode = 'harm'; } // without chapters.json there is only one kind of scheme
+function applySchMode() {
+  $('sch-harm').style.display = schMode === 'harm' ? 'grid' : 'none';
+  $('sch-chap').hidden = schMode !== 'chap';
+  $('schMode').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === schMode));
+  if (schMode === 'chap') renderChapters(); else renderScheme();
+}
+$('schMode').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  schMode = b.dataset.k; try { localStorage.setItem('pb-schMode', schMode); } catch {}
+  applySchMode();
+});
+$('chapQ').addEventListener('input', renderChapList);
+$('chapGroup').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; chapGroup = b.dataset.k; try { localStorage.setItem('pb-chapGroup', chapGroup); } catch {} renderChapList(); });
+$('chapStatus').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; chapStatus = b.dataset.k; renderChapList(); });
+$('chapList').addEventListener('click', e => {
+  const b = e.target.closest('.chap'); if (!b) return;
+  chapSel = chapters.find(c => c.name === b.dataset.n);
+  try { localStorage.setItem('pb-chap', chapSel.name); } catch {}
+  $('chapList').querySelectorAll('.chap').forEach(x => x.setAttribute('aria-pressed', x === b));
+  renderChapDetail();
+  if (matchMedia('(max-width: 860px)').matches) $('chapDetail').scrollIntoView({ block: 'start', behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+});
+$('chapDetail').addEventListener('click', e => {
+  const buy = e.target.closest('[data-buy]');
+  if (buy) { const p = allSearch.find(x => x.id === buy.dataset.buy); if (p) { judge(p); location.hash = '#zakupy'; } return; }
+  if (e.target.closest('#chapLadder')) {
+    setTarget(chapSel.armor.lab); $('baseSel').value = '__target';
+    schMode = 'harm'; try { localStorage.setItem('pb-schMode', schMode); } catch {}
+    applySchMode(); $('v-schematy').scrollIntoView({ block: 'start', behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+  }
+  if (e.target.closest('#chapWheel')) { setTarget(chapSel.armor.lab); location.hash = '#kolo'; }
+});
+
 /* ---------- COLLECTION ---------- */
 function renderCollection() {
   // value scale: dots stacked in columns so they do not overlap
@@ -1148,7 +1381,7 @@ function route() {
   const v = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'kolo';
   VIEWS.forEach(k => { $('v-' + k).hidden = k !== v; });
   document.querySelectorAll('nav.tabs a').forEach(a => a.setAttribute('aria-current', a.getAttribute('href') === '#' + v ? 'page' : 'false'));
-  if (v === 'schematy') renderScheme();
+  if (v === 'schematy') applySchMode();
 }
 window.addEventListener('hashchange', route);
 

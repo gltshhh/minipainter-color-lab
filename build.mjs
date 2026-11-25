@@ -8,6 +8,7 @@
 //   --inventory  ~/.minipainting/inventory.json   (or $MINIPAINTER_INVENTORY)
 //   --extras     ./extras.json                    (optional, paints missing from the catalog)
 //   --overrides  ./overrides.json                 (optional, corrected colours for catalog paints)
+//   --chapters   ./chapters.json                  (optional, Space Marine chapter colours)
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { homedir } from 'node:os';
@@ -87,7 +88,13 @@ if (existsSync(extrasPath)) {
   }
 }
 
-const data = { generated: new Date().toISOString().slice(0, 10), brands, owned, extras, catalog };
+// chapters.json (optional): Space Marine chapter colours for the "Chapters" view in Schemes.
+//   { "chapters": [["Ultramarines", "Ultramarines", "loyal", [["#2b4a8c", 61], ["#c9a64a", 9], ...]], ...] }
+//   fields: name, gene-seed line ("" = unknown), status (loyal | lost | renegade), colours with their share in %
+const chaptersPath = resolve(arg('chapters') || join(here, 'chapters.json'));
+const chapters = existsSync(chaptersPath) ? JSON.parse(readFileSync(chaptersPath, 'utf8')).chapters || [] : [];
+
+const data = { generated: new Date().toISOString().slice(0, 10), brands, owned, extras, catalog, chapters };
 writeFileSync(join(here, 'data.js'), 'window.PALETA = ' + JSON.stringify(data) + ';\n');
 
 // index.html = app.html wrapped in a full document, so it opens straight from disk.
@@ -97,5 +104,6 @@ writeFileSync(join(here, 'index.html'),
   app.replace(/(<\/style>)/, '$1\n</head>\n<body>') + '\n</body>\n</html>\n');
 
 console.log(`Catalog: ${catalog.length} paints (${catalogDir}), ${overridden} colours corrected from overrides.json`);
+console.log(`Chapters: ${chapters.length} from ${chaptersPath}`);
 console.log(`Owned: ${owned.length} from ${inventoryPath}, extra owned: ${extras.length}, extra in catalog: ${extraCatalog}`);
 console.log(`Open ${join(here, 'index.html')} in your browser.`);
