@@ -1,6 +1,6 @@
 {
   "name": "minipainter-color-lab",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "GUI color lab for miniature painters, built on the minipainter paint catalog: color mixing recipes, Citadel/Vallejo/Army Painter/AK equivalents and what paints you are missing.",
   "type": "module",
   "scripts": {

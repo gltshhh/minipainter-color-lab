@@ -206,7 +206,7 @@ footer { font-size: .85rem; color: var(--muted); max-width: 75ch; }
 .eq li:last-child button { border-bottom: 0; }
 .eq button:hover .nm { text-decoration: underline; text-decoration-color: var(--brass); }
 .shop { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.shop li { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; grid-template-areas: "sw hd acts" "sw alts acts"; gap: 2px 12px; align-items: start; background: var(--well); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; }
+.shop li { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; grid-template-areas: "sw hd acts" "sw alts acts" "sw note note"; gap: 2px 12px; align-items: start; background: var(--well); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; }
 .shop li.bought { opacity: .6; }
 .shop li.bought .nm { text-decoration: line-through; }
 .shop .sw { grid-area: sw; width: 30px; height: 30px; align-self: start; }
@@ -214,9 +214,22 @@ footer { font-size: .85rem; color: var(--muted); max-width: 75ch; }
 .shop .acts { grid-area: acts; display: flex; gap: 6px; flex-wrap: wrap; justify-content: end; }
 .shop .hd .badge { font-size: .72rem; padding: 1px 7px; vertical-align: 1px; }
 .shop .why { display: block; font-size: .82rem; color: var(--ink); margin-top: 2px; }
+/* paint notes (shopping list and collection) */
+.note { font-size: .85rem; min-width: 0; }
+.note summary { cursor: pointer; color: var(--muted); list-style: none; display: flex; gap: 6px; max-width: 100%; padding: 3px 0; }
+.note summary::-webkit-details-marker { display: none; }
+.note summary:hover { color: var(--ink); }
+.note .prev { color: var(--ink); font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.note .when-open { display: none; }
+.note[open] .prev { display: none; }
+.note[open] .when-open { display: inline; }
+.note textarea { display: block; width: 100%; margin-top: 2px; font: inherit; line-height: 1.4; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 6px 8px; resize: vertical; }
+.note textarea:focus { border-color: var(--brass); outline: none; box-shadow: inset 0 0 0 1px var(--brass); }
+.shop .note { grid-area: note; }
+.prow .note { grid-column: 2 / -1; margin-top: -4px; }
 .shop .alts { grid-area: alts; min-width: 0; font-size: .82rem; color: var(--muted); }
 @media (max-width: 620px) {
-  .shop li { grid-template-columns: 30px minmax(0, 1fr); grid-template-areas: "sw hd" "alts alts" "acts acts"; row-gap: 8px; align-items: center; }
+  .shop li { grid-template-columns: 30px minmax(0, 1fr); grid-template-areas: "sw hd" "alts alts" "note note" "acts acts"; row-gap: 8px; align-items: center; }
   .shop .acts { justify-content: start; }
 }
 .count { font-variant-numeric: tabular-nums; font-size: .8em; color: var(--brass); }
@@ -666,7 +679,7 @@ function quality(d) {
 const partsHtml = parts => parts.map(([p, w]) =>
   `<span class="part"><span class="dotc" style="--c:${p.hex};--g:${p.grey}"></span>${parts.length > 1 ? `<b>${w}</b>&nbsp;${N(w, ['część', 'części', 'części'], ['part', 'parts'])}` : ''} ${esc(p.name)}</span>`).join('');
 const nearest = (lab, list, n) => list.map(p => [p, dE(p.lab, lab)]).sort((a, b) => a[1] - b[1]).slice(0, n);
-const prow = (p, right = '') => `<li class="prow"><span class="sw" style="--c:${p.hex};--g:${p.grey}"></span><span style="min-width:0"><span class="nm">${esc(p.name)}</span> <span class="tag">${esc(p.brand)}, ${ROLE_PL[p.role] || p.role}, ${p.desc.text}</span></span><span class="tag num">${right}</span></li>`;
+const prow = (p, right = '', extra = '') => `<li class="prow"><span class="sw" style="--c:${p.hex};--g:${p.grey}"></span><span style="min-width:0"><span class="nm">${esc(p.name)}</span> <span class="tag">${esc(p.brand)}, ${ROLE_PL[p.role] || p.role}, ${p.desc.text}</span></span><span class="tag num">${right}</span>${extra}</li>`;
 
 /* ---------- header ---------- */
 const $ = id => document.getElementById(id);
@@ -964,6 +977,7 @@ function localShopStore() {
 async function initShop() {
   let db = null;
   try { db = window.claude && await window.claude.use('db'); } catch {}
+  initNotes(db);
   if (!db) { shopStore = localShopStore(); renderShop(); return; }
   const col = db.collection('shop');
   let timer = setTimeout(() => { $('shopNote').textContent = T('Nie mogę jeszcze połączyć się z listą. Spróbuję dalej w tle.', 'Cannot reach the list yet. Still trying in the background.'); }, 10000);
@@ -983,6 +997,65 @@ async function initShop() {
   };
   renderShop();
 }
+/* ---------- PAINT NOTES ----------
+   One note per paint (why you want it, what it is good for), shown on the shopping list and in the collection,
+   so a note written before buying stays with the paint afterwards. Stored in the Artifact database
+   (collection "notes", same doc ids as "shop"), or in this browser when there is no database. */
+let notes = new Map(); // docId -> { id, text, updated }
+let notesStore = null; // { save(paintId, text) }
+const openNotes = new Set(); // paint ids whose note is unfolded, kept across re-renders
+const noteOf = id => (notes.get(docId(id)) || {}).text || '';
+function noteHtml(p) {
+  const t = noteOf(p.id), first = t.split('\n')[0];
+  const sum = t
+    ? `<span aria-hidden="true">✎</span><span class="prev">${esc(first)}${first !== t ? ' …' : ''}</span><span class="when-open">${T('Notatka', 'Note')}</span>`
+    : T('+ notatka', '+ note');
+  return `<details class="note" data-note="${esc(p.id)}"${openNotes.has(p.id) ? ' open' : ''}><summary>${sum}</summary><textarea rows="3" maxlength="1000" aria-label="${T(`Notatka do ${esc(p.name)}`, `Note for ${esc(p.name)}`)}" placeholder="${T('Po co ta farba, do czego się nada, na jaki model…', 'Why this paint, what it is good for, which model…')}"${notesStore ? '' : ' disabled'}>${esc(t)}</textarea></details>`;
+}
+// Do not redraw a list while someone is typing a note in it; redraw once the field loses focus.
+const typingNote = () => { const a = document.activeElement; return !!(a && a.matches && a.matches('details.note textarea')); };
+const deferred = new Set();
+function holdWhileTyping(fn) {
+  if (typingNote()) { deferred.add(fn); return true; }
+  // remember which notes are unfolded right now, so a redraw does not fold them
+  document.querySelectorAll('details.note').forEach(d => { if (d.open) openNotes.add(d.dataset.note); else openNotes.delete(d.dataset.note); });
+  return false;
+}
+document.addEventListener('focusout', e => {
+  if (!e.target.matches || !e.target.matches('details.note textarea')) return;
+  setTimeout(() => { if (typingNote()) return; const fs = [...deferred]; deferred.clear(); fs.forEach(f => f()); });
+});
+document.addEventListener('toggle', e => {
+  const d = e.target; if (!d.matches || !d.matches('details.note')) return;
+  if (d.open) openNotes.add(d.dataset.note); else openNotes.delete(d.dataset.note);
+}, true);
+document.addEventListener('change', e => {
+  const ta = e.target; if (!ta.matches || !ta.matches('details.note textarea') || !notesStore) return;
+  const id = ta.closest('details').dataset.note, text = ta.value.trim();
+  if (text !== noteOf(id)) notesStore.save(id, text);
+});
+const renderNotes = () => { renderShop(); renderGroups(); };
+function initNotes(db) {
+  if (!db) {
+    const KEY = 'pb-notes';
+    try { for (const n of JSON.parse(localStorage.getItem(KEY) || '[]')) notes.set(docId(n.id), n); } catch {}
+    const persist = () => { try { localStorage.setItem(KEY, JSON.stringify([...notes.values()])); } catch {} };
+    notesStore = { save: (id, text) => { if (text) notes.set(docId(id), { id, text, updated: new Date().toISOString() }); else notes.delete(docId(id)); persist(); renderNotes(); } };
+    renderNotes(); return;
+  }
+  const col = db.collection('notes');
+  col.onSnapshot(snap => { notes = new Map(snap.docs.map(d => [d.id, d.data()])); renderNotes(); }, () => {});
+  const pending = new Map();
+  notesStore = {
+    save: (id, text) => {
+      const k = docId(id), prev = pending.get(k) || Promise.resolve();
+      const fn = () => text ? col.doc(k).set({ id, text, updated: new Date().toISOString() }) : col.doc(k).delete();
+      pending.set(k, prev.then(fn, fn).catch(() => { $('shopNote').textContent = T('Nie udało się zapisać notatki.', 'Could not save the note.'); }));
+    },
+  };
+  renderNotes();
+}
+
 function toggleShop(p) {
   if (!p || !shopStore) return;
   const k = docId(p.id);
@@ -1015,6 +1088,7 @@ function syncBought() {
   if (judged && judged.id !== 'hex') judge(judged);
 }
 function renderShop() {
+  if (holdWhileTyping(renderShop)) return;
   syncBought();
   const items = [...shopItems.values()].sort((a, b) => (a.bought - b.bought) || String(a.added).localeCompare(String(b.added)));
   const open = items.filter(it => !it.bought).length;
@@ -1027,6 +1101,7 @@ function renderShop() {
     return `<li class="${it.bought ? 'bought' : ''}"><span class="sw" style="--c:${esc(p ? p.hex : it.hex)};--g:${p ? p.grey : '#888'}"></span>
       <span class="hd"><span class="nm">${esc(it.name)}</span> <span class="tag">${esc(it.brand)}, ${ROLE_PL[it.role] || esc(it.role)}</span>${vd ? ` <span class="badge ${vd.cls}" title="${esc(vd.why)}">${vd.v}</span>` : ''}${vd ? shopWhy(p, vd) : ''}</span>
       ${alts ? `<span class="alts">${T('Zamienniki', 'Substitutes')}: ${alts}</span>` : ''}
+      ${noteHtml(p || it)}
       <span class="acts"><button class="btn quiet" data-act="bought" data-k="${esc(docId(it.id))}" aria-pressed="${!!it.bought}">${it.bought ? T('Kupione', 'Bought') : T('Oznacz jako kupione', 'Mark as bought')}</button><button class="btn quiet" data-act="remove" data-k="${esc(docId(it.id))}" aria-label="${T(`Usuń ${esc(it.name)} z listy`, `Remove ${esc(it.name)} from the list`)}">${T('Usuń', 'Remove')}</button></span></li>`;
   }).join('') : `<li style="display:block" class="small muted">${T('Lista jest pusta.', 'The list is empty.')}</li>`;
   syncShopButton();
@@ -1350,6 +1425,7 @@ let groupBy = 'type';
 try { if (localStorage.getItem('pb-groupBy') === 'brand') groupBy = 'brand'; } catch {}
 const byName = (a, b) => a.name.localeCompare(b.name, 'pl');
 function renderGroups() {
+  if (holdWhileTyping(renderGroups)) return;
   let G;
   if (groupBy === 'brand') {
     const m = new Map();
@@ -1368,7 +1444,7 @@ function renderGroups() {
       [T('Metaliki i tekstury', 'Metallics and textures'), mine.filter(p => p.role === 'metallic' || p.role === 'technical')],
     ];
   }
-  $('groups').innerHTML = G.filter(g => g[1].length).map(([t, ps]) => `<div style="display:grid;gap:6px;min-width:0"><h3>${esc(t)} <span class="muted small">${ps.length}</span></h3><ul class="plist">${ps.map(p => prow(p, p.hex.toUpperCase())).join('')}</ul></div>`).join('');
+  $('groups').innerHTML = G.filter(g => g[1].length).map(([t, ps]) => `<div style="display:grid;gap:6px;min-width:0"><h3>${esc(t)} <span class="muted small">${ps.length}</span></h3><ul class="plist">${ps.map(p => prow(p, p.hex.toUpperCase(), noteHtml(p))).join('')}</ul></div>`).join('');
   $('groupBy').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === groupBy));
 }
 $('groupBy').addEventListener('click', e => {
