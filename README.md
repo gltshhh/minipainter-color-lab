@@ -1,8 +1,8 @@
 # minipainter Color Lab
 
-**A color-theory workbench built on top of [minipainter](https://github.com/ArturSkowronski/minipainter).** minipainter keeps your miniature paint collection. Color Lab turns that collection into a single page that tells you what you can mix from it, what you are missing, and what a paint from a tutorial is called in other brands.
+**A color-theory workbench built on top of [minipainter](https://github.com/ArturSkowronski/minipainter).** minipainter keeps your miniature paint collection. Color Lab turns that collection into a single page that tells you what you can mix from it, what you are missing, what a paint from a tutorial is called in other brands, and how to paint any of 269 Space Marine chapters with the paints you have.
 
-There is no server and no shared database. Each person builds their own page from their own minipainter inventory, so the page always shows *your* paints. If you use Claude Code, a bundled hook rebuilds the page whenever Claude changes your inventory and can keep a private claude.ai Artifact up to date, so the same page works on your phone in the hobby store.
+There is no server. Each person builds their own page from their own minipainter inventory, so the page always shows *your* paints. If you use Claude Code, a bundled hook rebuilds the page whenever Claude changes your inventory and can keep a private claude.ai Artifact up to date, so the same page works on your phone in the hobby store; there the shopping list and paint notes live in the Artifact's own database.
 
 The interface is in **English and Polish** (switch in the top right corner; the default follows your browser language).
 
@@ -16,6 +16,7 @@ People starting out in the hobby. New painters often buy paints they do not need
 - Do I really need that dark brown, or do I already have two?
 - What paints am I missing, and which brand's paint is closest to the one in the video I am following?
 - Which three colors work together on this model, and how do I shade them?
+- My chapter wears blue and gold: which of my paints match, what do I still need, and what goes on the lenses and the base?
 
 Along the way it explains the theory behind the answers: hue, value and saturation, why mixing dulls color, complementary colors, warm light and cool shadow, and the 60/30/10 rule.
 
@@ -39,6 +40,8 @@ Mixing uses a single-constant Kubelka–Munk pigment model on linear RGB rather 
 | Collection | On a phone |
 |---|---|
 | ![Value scale and hue coverage of a collection](docs/collection.png) | ![The wheel tab at phone width](docs/phone.png) |
+
+![Chapter colors: the Blood Angels armor, second color and details matched to owned paints and store paints, with a value warning and suggested extras](docs/chapters.png)
 
 ## Setup
 
